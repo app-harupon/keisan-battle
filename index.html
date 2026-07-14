@@ -144,6 +144,32 @@
   .overlay button{font-family:Arial,sans-serif;font-weight:700;padding:10px 22px;border-radius:6px;border:1px solid var(--line);background:var(--gold);color:#1a1300;cursor:pointer;font-size:13px;}
   .overlay button.secondary{background:none;color:var(--text);}
 
+  /* ---------- GAME FEEL(演出) ---------- */
+  .readyGo{font-family:Arial,sans-serif;font-weight:900;font-size:46px;letter-spacing:.18em;color:var(--gold);text-shadow:0 0 18px rgba(255,207,77,.45);animation:rgIn .5s ease;}
+  .readyGo.go{color:var(--you);text-shadow:0 0 22px rgba(63,208,255,.6);animation:rgGo .5s ease;}
+  @keyframes rgIn{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+  @keyframes rgGo{from{transform:scale(1.8);opacity:0}to{transform:scale(1);opacity:1}}
+  .explainCard{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;font-family:Arial,sans-serif;animation:rgIn .25s ease;}
+  .exHead{font-size:14px;font-weight:900;letter-spacing:.12em;}
+  .exHead.ng{color:var(--danger);}
+  .exHead.pass{color:var(--gold);}
+  .exWord{font-size:30px;font-weight:800;color:var(--gold);}
+  .exReading{font-size:16px;color:var(--text);}
+  .exMeaning{font-size:12.5px;color:var(--sub);max-width:440px;line-height:1.7;}
+  .exNext{font-size:11px;color:var(--sub);letter-spacing:.08em;margin-top:4px;}
+  .exNext b{color:var(--gold);font-size:14px;}
+  .overlay .osub{font-family:Arial,sans-serif;color:var(--sub);margin:0;font-size:13px;max-width:100%;}
+  .reviewList{max-height:44vh;overflow-y:auto;text-align:left;display:flex;flex-direction:column;gap:6px;width:100%;max-width:480px;margin:8px auto 0;padding:2px;}
+  .revItem{display:flex;gap:10px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;}
+  .revMark{font-weight:900;font-size:15px;line-height:1.4;}
+  .revMark.ok{color:var(--ok);}
+  .revMark.ng{color:var(--danger);}
+  .revMark.pass{color:var(--gold);}
+  .revMain{color:var(--text);font-size:14px;font-weight:700;}
+  .revSent{color:var(--sub);font-size:11.5px;margin-top:2px;}
+  .revMeaning{color:var(--sub);font-size:12px;margin-top:2px;line-height:1.55;}
+  .numkey:active,.overlay button:active,.modeCard button:active,.kanjiInputRow button:active,.passBtnStandalone:active{transform:scale(.94);}
+
   .hidden{display:none !important;}
 </style>
 </head>
@@ -152,7 +178,10 @@
 
   <header>
     <h1 id="titleText">ケイサン<span>バトル</span></h1>
-    <button class="backBtn hidden" id="backBtn">← 戻る</button>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="backBtn" id="muteBtn" title="効果音 ON/OFF">🔊</button>
+      <button class="backBtn hidden" id="backBtn">← 戻る</button>
+    </div>
   </header>
 
   <!-- MODE SELECT -->
@@ -227,7 +256,7 @@
 
   <div class="overlay" id="overlay">
     <h2 id="overlayTitle">WIN</h2>
-    <p id="overlaySub"></p>
+    <div id="overlaySub" class="osub"></div>
     <div class="btnrow" id="overlayBtnRow">
       <button id="retryBtn">もう一度</button>
       <button class="secondary" id="toMenuBtn">モード選択へ</button>
@@ -236,6 +265,7 @@
 
 </div>
 
+<script src="kanji-data.js"></script>
 <script>
 const MAX_HP = 100;
 const el = id => document.getElementById(id);
@@ -243,6 +273,121 @@ function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
 
 function shakeElement(elm){
   elm.animate([{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:220});
+}
+
+/* ============ 効果音(Web Audio APIで合成、音声ファイル不要) ============ */
+const Sfx = (()=>{
+  let ctx = null, muted = false;
+  function ac(){
+    if(!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)();
+    if(ctx.state==='suspended') ctx.resume();
+    return ctx;
+  }
+  function beep(freq, dur, type, vol, delay, freqEnd){
+    if(muted) return;
+    try{
+      const c = ac(), t = c.currentTime + (delay||0);
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = type || 'square';
+      o.frequency.setValueAtTime(freq, t);
+      if(freqEnd) o.frequency.exponentialRampToValueAtTime(Math.max(20,freqEnd), t+dur);
+      g.gain.setValueAtTime(vol||0.12, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t+dur+0.05);
+    }catch(e){}
+  }
+  return {
+    tap(){ beep(620,0.04,'square',0.05); },
+    ready(){ beep(440,0.14,'square',0.1); beep(440,0.14,'square',0.1,0.35); },
+    go(){ beep(880,0.35,'square',0.12); beep(180,1.1,'triangle',0.3,0,55); beep(120,1.3,'sine',0.22,0.02,45); },
+    correct(){ beep(660,0.08,'square',0.1); beep(880,0.14,'square',0.1,0.08); },
+    wrong(){ beep(220,0.22,'sawtooth',0.12); beep(150,0.3,'sawtooth',0.12,0.12); },
+    pass(){ beep(420,0.1,'sine',0.09); beep(300,0.14,'sine',0.09,0.1); },
+    fire(){ beep(400,0.25,'sawtooth',0.06,0,1400); },
+    hit(){ beep(160,0.18,'square',0.16,0,70); },
+    clash(){ beep(1250,0.12,'square',0.1); beep(950,0.2,'square',0.1,0.05,280); },
+    win(){ [523,659,784,1047].forEach((f,i)=>beep(f,0.18,'square',0.12,i*0.13)); },
+    lose(){ [392,330,262,196].forEach((f,i)=>beep(f,0.22,'sawtooth',0.1,i*0.17)); },
+    setMuted(m){ muted = m; },
+    isMuted(){ return muted; }
+  };
+})();
+const muteBtn = document.getElementById('muteBtn');
+muteBtn.addEventListener('click', ()=>{
+  Sfx.setMuted(!Sfx.isMuted());
+  muteBtn.textContent = Sfx.isMuted() ? '🔇' : '🔊';
+});
+
+/* ============ READY GO 演出 & ミス/パス後の解説タイム ============ */
+const BREAK_MS = 3000;
+function runReadyGo(zoneEl, state, cb){
+  zoneEl.innerHTML = '<div class="readyGo" id="rgText">READY...</div>';
+  Sfx.ready();
+  state.breakTimeout = setTimeout(()=>{
+    const t = document.getElementById('rgText');
+    if(t){ t.textContent = 'GO!!'; t.classList.add('go'); }
+    Sfx.go();
+    state.breakTimeout = setTimeout(cb, 700);
+  }, 1000);
+}
+function showBreakExplanation(zoneEl, problem, kind, head, headClass, cb, state){
+  let inner;
+  if(kind==='kanji'){
+    inner = `<div class="exWord">${problem.word}</div>
+      <div class="exReading">読み方: ${problem.reading}</div>
+      ${problem.meaning ? `<div class="exMeaning">意味: ${problem.meaning}</div>` : ''}`;
+  } else {
+    inner = `<div class="exWord">${problem.text} = ${problem.result}</div>`;
+  }
+  zoneEl.innerHTML = `<div class="explainCard">
+    <div class="exHead ${headClass}">${head}</div>
+    ${inner}
+    <div class="exNext">つぎの問題まで <b id="exCount">3</b></div>
+  </div>`;
+  let n = 3;
+  state.breakTick = setInterval(()=>{
+    n--;
+    const c = document.getElementById('exCount');
+    if(c && n>0) c.textContent = n;
+  }, 1000);
+  state.breakTimeout = setTimeout(()=>{
+    clearInterval(state.breakTick);
+    cb();
+  }, BREAK_MS);
+}
+
+/* ============ ふりかえり(今回出てきた問題の一覧) ============ */
+let lastEnd = null, lastHistory = [];
+function addReviewButton(){
+  if(!lastHistory.length) return;
+  const b = document.createElement('button');
+  b.className = 'secondary';
+  b.textContent = '📖 ふりかえり';
+  b.addEventListener('click', showReviewOverlay);
+  document.getElementById('overlayBtnRow').appendChild(b);
+}
+function reviewItemHTML(item){
+  const mark = item.res==='correct' ? '<span class="revMark ok">○</span>'
+    : item.res==='pass' ? '<span class="revMark pass">➜</span>'
+    : '<span class="revMark ng">×</span>';
+  if(item.kind==='kanji'){
+    const q = item.q;
+    return `<div class="revItem">${mark}<div>
+      <div class="revMain">${q.word}(${q.reading})</div>
+      <div class="revSent">${q.before}${q.word}${q.after}</div>
+      ${q.meaning ? `<div class="revMeaning">${q.meaning}</div>` : ''}
+    </div></div>`;
+  }
+  return `<div class="revItem">${mark}<div><div class="revMain">${item.q.text} = ${item.q.result}</div></div></div>`;
+}
+function showReviewOverlay(){
+  document.getElementById('overlayTitle').textContent = 'ふりかえり';
+  document.getElementById('overlayTitle').style.color = 'var(--gold)';
+  document.getElementById('overlaySub').innerHTML = `<div class="reviewList">${lastHistory.map(reviewItemHTML).join('')}</div>`;
+  const row = document.getElementById('overlayBtnRow');
+  row.innerHTML = `<button id="revBackBtn" class="secondary">← 結果へもどる</button>`;
+  document.getElementById('revBackBtn').addEventListener('click', ()=>{ if(lastEnd) lastEnd(); });
 }
 
 /* ============ 数字テンキー(計算モード) / かなキーボード(漢字モード) ============ */
@@ -262,6 +407,7 @@ function buildNumpad(padEl, displayEl, onSubmit, submitLabel, passState, onPass)
     b.className = 'numkey' + (k==='ok' ? ' numkey-ok' : (k==='back' ? ' numkey-back':''));
     b.textContent = k==='back' ? '⌫' : (k==='ok' ? submitLabel : k);
     b.addEventListener('click', ()=>{
+      Sfx.tap();
       if(k==='back'){ val = val.slice(0,-1); render(); }
       else if(k==='ok'){ submitNow(); }
       else if(val.length<6){ val += k; render(); }
@@ -400,10 +546,12 @@ function fireShot(side, damage, arenaEl){
       finalDamage = 0;
     }
     showClashSpark(arenaEl);
+    Sfx.clash();
   }
   const shot = { damage: finalDamage, canceled: finalDamage<=0, arriveAt: now+SHOT_DURATION, side };
   sp[mySlot] = shot;
   const color = side==='you' ? 'var(--you)' : 'var(--enemy)';
+  Sfx.fire();
   const p = createProjectileEl(arenaEl, side, '+'+damage, color);
   animateProjectile(p, side, clashed ? Math.round(SHOT_DURATION*0.5) : SHOT_DURATION, clashed ? 45 : undefined);
   if(!shot.canceled){
@@ -414,8 +562,20 @@ function fireShot(side, damage, arenaEl){
   }
   return clashed;
 }
+function flashDamage(side){
+  const f = document.querySelector('.fighter.'+side);
+  if(f) f.animate([{backgroundColor:'rgba(255,77,77,.45)'},{backgroundColor:'#161a23'}],{duration:350});
+}
 function applyShotDamage(shot){
-  if(shot.side==='you'){ sp.enHp -= shot.damage; } else { sp.youHp -= shot.damage; }
+  if(shot.side==='you'){
+    sp.enHp -= shot.damage;
+    flashDamage('enemy');
+  } else {
+    sp.youHp -= shot.damage;
+    flashDamage('you');
+    shakeElement(el('cabinet'));
+  }
+  Sfx.hit();
   speedRender();
   checkSpeedEnd();
 }
@@ -500,83 +660,13 @@ function genProblem(level){
 const KANKEN_GRADES = ['10級','9級','8級','7級','6級','5級','4級','3級','準2級','2級','準1級','1級'];
 function kankenLabel(lv){ return KANKEN_GRADES[lv-1] + '〜' + KANKEN_GRADES[lv+1]; }
 
-const KANJI_DATA = {
-  1: [
-    ['算数の授業で','一','いち','から十までかぞえた。'],
-    ['今月はテストが','二','に','回あります。'],
-    ['本を','三','さん','さつ買った。'],
-    ['毎週末、','山','やま','に登ります。'],
-    ['この','川','かわ','はとても広い。']
-  ],
-  2: [
-    ['庭に大きな','木','き','があります。'],
-    ['公園できれいな','花','はな','を見た。'],
-    ['うちの','犬','いぬ','はとても人なつっこい。'],
-    ['近所の','猫','ねこ','がベランダに来た。'],
-    ['今日は','空','そら','がとても青い。']
-  ],
-  3: [
-    ['毎朝歩いて','学校','がっこう','に行きます。'],
-    ['明日の','天気','てんき','は晴れらしい。'],
-    ['休み時間に','音楽','おんがく','を聴くのが好きだ。'],
-    ['新しい','友達','ともだち','がたくさんできた。'],
-    ['先生と英語で','会話','かいわ','を練習した。']
-  ],
-  4: [
-    ['放課後に','図書','としょ','室で本を読む。'],
-    ['動物園でいろいろな','動物','どうぶつ','を見た。'],
-    ['この地図には','世界','せかい','中の国が載っている。'],
-    ['静かな','教室','きょうしつ','で勉強する。'],
-    ['毎日','電車','でんしゃ','で通学している。']
-  ],
-  5: [
-    ['初めての','経験','けいけん','はとても緊張した。'],
-    ['新しい記録に','挑戦','ちょうせん','する。'],
-    ['クラスで活発な','議論','ぎろん','が行われた。'],
-    ['理科の授業で植物を','観察','かんさつ','した。'],
-    ['未来の生活を','想像','そうぞう','してみる。']
-  ],
-  6: [
-    ['町はこれからさらに','発展','はってん','していくだろう。'],
-    ['地球の','環境','かんきょう','を守ることが大切だ。'],
-    ['計画がようやく','承認','しょうにん','された。'],
-    ['友達との','誤解','ごかい','がとけた。'],
-    ['その意見には多くの','批判','ひはん','が集まった。']
-  ],
-  7: [
-    ['彼の話には','矛盾','むじゅん','が多い。'],
-    ['彼の返事はいつも','曖昧','あいまい','だ。'],
-    ['祖父はとても','頑固','がんこ','な性格だ。'],
-    ['二人はついに','妥協','だきょう','した。'],
-    ['この絵はとても','抽象','ちゅうしょう','的な作品だ。']
-  ],
-  8: [
-    ['彼女のデザインはとても','洗練','せんれん','されている。'],
-    ['計画から大きく','逸脱','いつだつ','してしまった。'],
-    ['効果が','顕著','けんちょ','に現れた。'],
-    ['話し合いは','円滑','えんかつ','に進んだ。'],
-    ['不安を','払拭','ふっしょく','することができた。']
-  ],
-  9: [
-    ['この出会いを','一期一会','いちごいちえ','の気持ちで大切にする。'],
-    ['先人の知恵に学ぶことを','温故知新','おんこちしん','という。'],
-    ['怠けた結果の失敗はまさに','自業自得','じごうじとく','だ。'],
-    ['物語は','起承転結','きしょうてんけつ','の構成で書かれている。'],
-    ['状況に応じて','臨機応変','りんきおうへん','に対応する。']
-  ],
-  10: [
-    ['この世界の','森羅万象','しんらばんしょう','はすべてつながっている。'],
-    ['世の中は','有為転変','ういてんぺん','で移り変わっていく。'],
-    ['出会いと別れは','会者定離','えしゃじょうり','の理と言われる。'],
-    ['試合前は','明鏡止水','めいきょうしすい','の心境で臨んだ。'],
-    ['彼は','韋編三絶','いへんさんぜつ','というほど何度も本を読み返した。']
-  ]
-};
+/* KANJI_DATA は kanji-data.js(外部ファイル)で定義。各エントリは
+   [前の文, 対象の単語, 読み方, 後の文, 意味(省略可)] の形式 */
 function genKanjiProblem(level){
   const lv = Math.max(1, Math.min(10, Math.round(level)));
   const list = KANJI_DATA[lv];
   const pick = list[randInt(0, list.length-1)];
-  return {before:pick[0], word:pick[1], reading:pick[2], after:pick[3]};
+  return {before:pick[0], word:pick[1], reading:pick[2], after:pick[3], meaning:pick[4]||''};
 }
 
 /* ============ NAV ============ */
@@ -671,22 +761,29 @@ function startSpeedMode(level, isStage, stageNum, kind){
     youHp:MAX_HP, enHp:params.enemyHpMax, enHpMax:params.enemyHpMax,
     over:false, enemyTimer:null, streak:0, level, params,
     isStage: !!isStage, stageNum: stageNum,
-    playerShot:null, enemyShot:null, passReadyAt:0, kind: kind || 'calc'
+    playerShot:null, enemyShot:null, passReadyAt:0, kind: kind || 'calc',
+    history:[], breakTimeout:null, breakTick:null
   };
   const badge = el('stageBadge');
   if(isStage){ badge.textContent = `STAGE ${stageNum} / 10`; badge.classList.remove('hidden'); }
   else { badge.classList.add('hidden'); }
   el('speedLvTag').textContent = 'Lv.'+level;
   speedRender();
-  el('speedLog').innerHTML = 'バトル開始！ 出てきた問題を解いて攻撃しよう';
-  scheduleEnemyAttack();
-  nextSpeedProblem();
+  el('speedLog').innerHTML = '⚔ まもなくバトル開始...';
+  runReadyGo(el('speedProblemZone'), sp, ()=>{
+    if(!sp || sp.over) return;
+    el('speedLog').innerHTML = 'バトル開始！ 出てきた問題を解いて攻撃しよう';
+    scheduleEnemyAttack();
+    nextSpeedProblem();
+  });
 }
 function stopSpeedMode(){
   if(sp){
     if(sp.enemyTimer) clearTimeout(sp.enemyTimer);
     if(sp.playerShot && sp.playerShot.timeoutId) clearTimeout(sp.playerShot.timeoutId);
     if(sp.enemyShot && sp.enemyShot.timeoutId) clearTimeout(sp.enemyShot.timeoutId);
+    if(sp.breakTimeout) clearTimeout(sp.breakTimeout);
+    if(sp.breakTick) clearInterval(sp.breakTick);
   }
   sp = null;
 }
@@ -721,22 +818,29 @@ function nextSpeedProblem(){
     const elapsed = (Date.now()-startTime)/1000;
     const correct = (val !== null && val === answer);
     const shown = sp.kind==='kanji' ? problem.word : problem.text;
+    sp.history.push({kind:sp.kind, q:problem, res: correct?'correct':'wrong'});
     if(correct){
       sp.streak++;
+      Sfx.correct();
       let dmg = randInt(8,14);
       if(elapsed < 2) dmg += 5;
       const clashed = fireShot('you', dmg, el('speedArena'));
       el('speedLog').innerHTML = `<b>命中!</b> ${shown}=${answer} → 数式攻撃を発射(${dmg})${elapsed<2?' スピードボーナス!':''}${clashed?' <b>※相殺!</b>':''}`;
+      nextSpeedProblem();
     } else {
       sp.streak = 0;
+      Sfx.wrong();
       shakeElement(el('speedProblemZone'));
       el('speedLog').innerHTML = `<b>ミス...</b> 正解は ${answer}`;
+      showBreakExplanation(el('speedProblemZone'), problem, sp.kind, 'ミス... 正解をチェック!', 'ng', nextSpeedProblem, sp);
     }
-    nextSpeedProblem();
   }
   function pass(){
+    if(!sp || sp.over) return;
+    sp.history.push({kind:sp.kind, q:problem, res:'pass'});
+    Sfx.pass();
     el('speedLog').innerHTML = `<span style="color:var(--sub)">パスした(正解: ${answer})</span>`;
-    nextSpeedProblem();
+    showBreakExplanation(el('speedProblemZone'), problem, sp.kind, 'パス → 正解をチェック', 'pass', nextSpeedProblem, sp);
   }
 
   if(sp.kind==='kanji'){
@@ -767,10 +871,16 @@ function checkSpeedEnd(){
   return false;
 }
 
-function endSpeed(win){
+function endSpeed(win, silent){
   sp.over = true;
   if(sp.enemyTimer) clearTimeout(sp.enemyTimer);
+  if(sp.breakTimeout) clearTimeout(sp.breakTimeout);
+  if(sp.breakTick) clearInterval(sp.breakTick);
   const isStage = sp.isStage, stageNum = sp.stageNum, kind = sp.kind;
+
+  if(!silent){ win ? Sfx.win() : Sfx.lose(); }
+  lastEnd = ()=>endSpeed(win, true);
+  lastHistory = sp.history || [];
 
   el('overlayTitle').textContent = win ? (isStage?'STAGE CLEAR':'WIN') : 'LOSE';
   el('overlayTitle').style.color = win ? 'var(--you)' : 'var(--enemy)';
@@ -813,6 +923,7 @@ function endSpeed(win){
     el('toMenuBtn').addEventListener('click', goToMenu);
   }
   overlayEl.classList.add('show');
+  addReviewButton();
 }
 
 /* ============ SURVIVAL MODE ============ */
@@ -825,14 +936,23 @@ function survRender(){
 }
 function startSurvivalMode(level, kind){
   const params = survivalLevelParams(level);
-  sv = { score:0, miss:0, over:false, tickId:null, level, params, passReadyAt:0, kind: kind || 'calc' };
+  sv = { score:0, miss:0, over:false, tickId:null, level, params, passReadyAt:0, kind: kind || 'calc',
+    history:[], breakTimeout:null, breakTick:null };
   el('survLvTag').textContent = 'Lv.'+level;
   survRender();
-  el('survLog').innerHTML = `サバイバル開始！ ${params.timeTotal}秒以内に答えよう。5ミスで終了。`;
-  nextSurvProblem();
+  el('survLog').innerHTML = '⚔ まもなく開始...';
+  runReadyGo(el('survProblemZone'), sv, ()=>{
+    if(!sv || sv.over) return;
+    el('survLog').innerHTML = `サバイバル開始！ ${params.timeTotal}秒以内に答えよう。5ミスで終了。`;
+    nextSurvProblem();
+  });
 }
 function stopSurvivalMode(){
-  if(sv && sv.tickId) clearInterval(sv.tickId);
+  if(sv){
+    if(sv.tickId) clearInterval(sv.tickId);
+    if(sv.breakTimeout) clearTimeout(sv.breakTimeout);
+    if(sv.breakTick) clearInterval(sv.breakTick);
+  }
   sv = null;
 }
 
@@ -878,23 +998,30 @@ function nextSurvProblem(){
     if(!sv || sv.over) return;
     const correct = (val!==null && val===answer);
     const shown = sv.kind==='kanji' ? problem.word : problem.text;
+    sv.history.push({kind:sv.kind, q:problem, res: correct?'correct':'wrong'});
     if(correct){
       sv.score++;
+      Sfx.correct();
       el('survLog').innerHTML = `<b>正解!</b> ${shown} = ${answer}`;
+      survRender();
+      nextSurvProblem();
     } else {
       sv.miss++;
+      Sfx.wrong();
       shakeElement(el('survProblemZone'));
       el('survLog').innerHTML = val===null ? `<b>時間切れ...</b> 正解は ${answer}` : `<b>不正解...</b> 正解は ${answer}`;
+      survRender();
+      if(sv.miss >= 5){ endSurvival(); return; }
+      showBreakExplanation(el('survProblemZone'), problem, sv.kind, val===null ? '時間切れ... 正解をチェック!' : 'ミス... 正解をチェック!', 'ng', nextSurvProblem, sv);
     }
-    survRender();
-    if(sv.miss >= 5){ endSurvival(); return; }
-    nextSurvProblem();
   }
   function pass(){
     clearInterval(sv.tickId);
     if(!sv || sv.over) return;
+    sv.history.push({kind:sv.kind, q:problem, res:'pass'});
+    Sfx.pass();
     el('survLog').innerHTML = `<span style="color:var(--sub)">パスした(正解: ${answer})</span>`;
-    nextSurvProblem();
+    showBreakExplanation(el('survProblemZone'), problem, sv.kind, 'パス → 正解をチェック', 'pass', nextSurvProblem, sv);
   }
 
   if(sv.kind==='kanji'){
@@ -904,9 +1031,14 @@ function nextSurvProblem(){
   }
 }
 
-function endSurvival(){
+function endSurvival(silent){
   sv.over = true;
   if(sv.tickId) clearInterval(sv.tickId);
+  if(sv.breakTimeout) clearTimeout(sv.breakTimeout);
+  if(sv.breakTick) clearInterval(sv.breakTick);
+  if(!silent) Sfx.lose();
+  lastEnd = ()=>endSurvival(true);
+  lastHistory = sv.history || [];
   el('overlayTitle').textContent = 'GAME OVER';
   el('overlayTitle').style.color = 'var(--enemy)';
   el('overlaySub').textContent = `Lv.${sv.level} / スコア: ${sv.score}問正解`;
@@ -919,6 +1051,7 @@ function endSurvival(){
   });
   el('toMenuBtn').addEventListener('click', goToMenu);
   overlayEl.classList.add('show');
+  addReviewButton();
 }
 
 navHistory.push(modeSelect);
