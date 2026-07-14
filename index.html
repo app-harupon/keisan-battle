@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>ケイサンバトル - 試作版</title>
+<style>
+  :root{
+    --bg:#0d0f14; --panel:#161a23; --line:#262c3a;
+    --you:#3fd0ff; --enemy:#ff4d7a; --gold:#ffcf4d;
+    --danger:#ff4d4d; --ok:#7dffb0; --text:#e8ebf2; --sub:#7d8494;
+  }
+  *{box-sizing:border-box;}
+  html{background:var(--bg);}
+  html,body{margin:0;min-height:100dvh;}
+  body{
+    background:
+      radial-gradient(circle at 20% -10%, #1a2130 0%, transparent 45%),
+      radial-gradient(circle at 90% 110%, #1f1420 0%, transparent 45%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Courier New',Consolas,monospace;
+    display:flex;align-items:flex-start;justify-content:center;
+    padding:20px 0 40px;
+  }
+  .cabinet{
+    width:640px;max-width:96vw;
+    border:1px solid var(--line);border-radius:14px;
+    background:linear-gradient(180deg,#12151d,#0e1016);
+    box-shadow:0 30px 80px -30px rgba(0,0,0,.8), inset 0 0 0 1px rgba(255,255,255,.02);
+    overflow:hidden;position:relative;margin:0 auto;
+  }
+  header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 10px;border-bottom:1px solid var(--line);}
+  header h1{margin:0;font-size:20px;letter-spacing:.14em;font-weight:700;font-family:Arial,Helvetica,sans-serif;}
+  header h1 span{color:var(--gold);}
+  .backBtn{font-family:Arial,sans-serif;font-size:11px;letter-spacing:.08em;color:var(--sub);background:none;border:1px solid var(--line);border-radius:5px;padding:5px 10px;cursor:pointer;}
+  .backBtn:hover{color:var(--text);}
+
+  /* ---------- KIND TOGGLE ---------- */
+  .kindToggle{display:flex;gap:8px;padding:16px 20px 0;}
+  .kindBtn{flex:1;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--sub);font-family:Arial,sans-serif;font-weight:700;font-size:13px;cursor:pointer;}
+  .kindBtn.active{background:var(--gold);color:#1a1300;border-color:var(--gold);}
+
+  /* ---------- MODE SELECT ---------- */
+  #modeSelect{padding:16px 20px 26px;}
+  .modeCard{border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:12px;background:var(--panel);display:flex;flex-direction:column;gap:8px;}
+  .modeCard h2{margin:0;font-family:Arial,sans-serif;font-size:15px;letter-spacing:.06em;}
+  .modeCard.speed h2{color:var(--you);}
+  .modeCard.survival h2{color:var(--enemy);}
+  .modeCard.stage h2{color:var(--gold);}
+  .modeCard p{margin:0;font-size:12.5px;color:var(--sub);line-height:1.6;font-family:Arial,sans-serif;}
+  .modeCard button{align-self:flex-start;font-family:Arial,sans-serif;font-weight:700;font-size:12px;letter-spacing:.06em;padding:8px 18px;border-radius:6px;border:1px solid var(--line);background:var(--gold);color:#1a1300;cursor:pointer;margin-top:4px;}
+
+  /* ---------- LEVEL SELECT ---------- */
+  .levelSelect{padding:20px;}
+  .levelSelect .lsTitle{font-family:Arial,sans-serif;font-size:13px;color:var(--sub);letter-spacing:.08em;margin-bottom:14px;text-align:center;}
+  .levelGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+  .levelBtn{aspect-ratio:1;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:Arial,sans-serif;}
+  .levelBtn .lvnum{font-size:20px;font-weight:800;}
+  .levelBtn .lvsub{font-size:9px;color:var(--sub);letter-spacing:.05em;}
+  .levelBtn:not(:disabled):hover{border-color:var(--gold);}
+  .levelBtn.locked{opacity:.35;cursor:not-allowed;}
+  .levelBtn.cleared{border-color:var(--ok);}
+  .levelBtn.cleared .lvnum{color:var(--ok);}
+
+  /* ---------- SPEED / STAGE BATTLE ---------- */
+  .fighters{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);}
+  .fighter{background:var(--panel);padding:14px 18px;}
+  .fighter.enemy{text-align:right;}
+  .fname{font-family:Arial,sans-serif;font-size:12px;letter-spacing:.15em;color:var(--sub);margin-bottom:6px;}
+  .fighter.you .fname{color:var(--you);}
+  .fighter.enemy .fname{color:var(--enemy);}
+  .hpwrap{height:10px;background:#00000055;border-radius:6px;overflow:hidden;border:1px solid var(--line);}
+  .fighter.enemy .hpwrap{margin-left:auto;}
+  .hpbar{height:100%;transition:width .25s ease;}
+  .fighter.you .hpbar{background:linear-gradient(90deg,var(--you),#7ff7ff);}
+  .fighter.enemy .hpbar{background:linear-gradient(90deg,#ff8fae,var(--enemy));}
+  .hptext{font-size:12px;margin-top:4px;color:var(--sub);}
+
+  .arena{position:relative;height:70px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line);overflow:hidden;background:repeating-linear-gradient(90deg, transparent 0 39px, rgba(255,255,255,.02) 39px 40px);}
+  .log{font-size:12.5px;color:var(--sub);text-align:center;max-width:90%;font-family:Arial,sans-serif;}
+  .log b{color:var(--text);}
+  .projectile{position:absolute;top:50%;transform:translateY(-50%);font-family:Arial,sans-serif;font-weight:900;font-size:20px;opacity:0;pointer-events:none;}
+
+  .problem-zone{padding:16px 20px 20px;border-bottom:1px solid var(--line);min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;}
+  .idle-msg{color:var(--sub);font-size:13px;letter-spacing:.05em;text-align:center;font-family:Arial,sans-serif;}
+  .equation{font-size:32px;letter-spacing:.05em;font-weight:700;}
+  .equation .op{padding:0 10px;}
+  .kanjiSentence{font-size:17px;line-height:2;text-align:center;font-family:'Hiragino Mincho ProN','Yu Mincho',serif;padding:0 6px;}
+  .sentPlain{color:var(--text);}
+  .sentTarget{color:var(--gold);font-size:30px;font-weight:800;margin:0 2px;}
+  .kanjiPrompt{font-size:11.5px;color:var(--sub);font-family:Arial,sans-serif;letter-spacing:.05em;}
+
+  .answerDisplay{min-width:140px;min-height:40px;font-size:24px;text-align:center;letter-spacing:.05em;background:#0b0d12;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:4px 10px;font-family:'Courier New',Consolas,monospace;}
+
+  .timerbar{width:220px;height:6px;background:#00000055;border-radius:4px;overflow:hidden;border:1px solid var(--line);}
+  .timerfill{height:100%;background:var(--gold);}
+  .timerfill.danger{background:var(--danger);}
+
+  /* ---------- ON-SCREEN NUMPAD (calc) ---------- */
+  .numpad{display:grid;grid-template-columns:repeat(3,64px);gap:8px;justify-content:center;}
+  .numkey{font-family:Arial,sans-serif;font-weight:700;font-size:18px;padding:12px 0;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;}
+  .numkey:active{background:#232838;}
+  .numkey-back{color:var(--enemy);font-size:16px;}
+  .numkey-ok{background:var(--gold);color:#1a1300;font-size:14px;letter-spacing:.05em;}
+  .numkey-pass{grid-column:1 / -1;background:none;color:var(--sub);border-style:dashed;font-size:12px;letter-spacing:.08em;}
+  .numkey-pass:disabled{opacity:.4;cursor:not-allowed;}
+
+  /* ---------- 漢字モード: 端末のキーボードを使う入力欄 ---------- */
+  .kanjiInputRow{display:flex;gap:8px;align-items:center;}
+  .kanjiInputRow input{
+    width:180px;font-size:22px;text-align:center;letter-spacing:.05em;
+    background:#0b0d12;border:1px solid var(--line);color:var(--text);
+    border-radius:8px;padding:8px 6px;font-family:'Courier New',Consolas,monospace;
+  }
+  .kanjiInputRow input:focus{outline:2px solid var(--gold);}
+  .kanjiInputRow button{
+    font-family:Arial,sans-serif;font-weight:700;font-size:13px;letter-spacing:.05em;
+    padding:9px 16px;border-radius:6px;border:1px solid var(--line);
+    background:var(--gold);color:#1a1300;cursor:pointer;
+  }
+  .passBtnStandalone{
+    font-family:Arial,sans-serif;font-weight:700;font-size:12px;letter-spacing:.08em;
+    padding:8px 20px;border-radius:6px;border:1px dashed var(--line);
+    background:none;color:var(--sub);cursor:pointer;
+  }
+  .passBtnStandalone:disabled{opacity:.4;cursor:not-allowed;}
+
+  /* ---------- SURVIVAL ---------- */
+  .survivalStats{display:flex;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--panel);font-family:Arial,sans-serif;font-size:13px;}
+  .survivalStats .label{color:var(--sub);font-size:11px;letter-spacing:.1em;display:block;margin-bottom:3px;}
+  .missDots{display:flex;gap:5px;margin-top:2px;}
+  .missDot{width:11px;height:11px;border-radius:50%;border:1px solid var(--line);background:#00000055;}
+  .missDot.used{background:var(--danger);border-color:var(--danger);}
+  .scoreVal{font-size:20px;font-weight:700;color:var(--gold);}
+
+  .stageBadge{font-family:Arial,sans-serif;font-size:11px;letter-spacing:.1em;color:var(--gold);text-align:center;padding:6px 0 0;background:var(--panel);}
+
+  .overlay{position:absolute;inset:0;background:rgba(6,7,10,.92);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;text-align:center;padding:20px;}
+  .overlay.show{display:flex;}
+  .overlay h2{font-family:Arial,sans-serif;font-size:30px;letter-spacing:.1em;margin:0;}
+  .overlay p{font-family:Arial,sans-serif;color:var(--sub);margin:0;font-size:13px;}
+  .overlay .btnrow{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+  .overlay button{font-family:Arial,sans-serif;font-weight:700;padding:10px 22px;border-radius:6px;border:1px solid var(--line);background:var(--gold);color:#1a1300;cursor:pointer;font-size:13px;}
+  .overlay button.secondary{background:none;color:var(--text);}
+
+  .hidden{display:none !important;}
+</style>
+</head>
+<body>
+<div class="cabinet" id="cabinet">
+
+  <header>
+    <h1 id="titleText">ケイサン<span>バトル</span></h1>
+    <button class="backBtn hidden" id="backBtn">← 戻る</button>
+  </header>
+
+  <!-- MODE SELECT -->
+  <div id="modeSelect">
+    <div class="kindToggle">
+      <button class="kindBtn active" id="kindCalcBtn">🔢 けいさん</button>
+      <button class="kindBtn" id="kindKanjiBtn">🈶 かんじの読み方</button>
+    </div>
+    <div class="modeCard speed">
+      <h2>⚡ スピードバトル</h2>
+      <p id="descSpeed">問題が次々ランダムに出てくる。解けたら即攻撃、相手も一定間隔で攻撃してくる。先にHPを0にした方が勝ち。</p>
+      <button id="openSpeedLv">レベルを選ぶ</button>
+    </div>
+    <div class="modeCard survival">
+      <h2>🛡 サバイバル(5ミス失格)</h2>
+      <p id="descSurvival">問題が制限時間内に出題され続ける。不正解・時間切れで1ミス、5ミスでゲームオーバー。</p>
+      <button id="openSurvivalLv">レベルを選ぶ</button>
+    </div>
+    <div class="modeCard stage">
+      <h2>🏁 レベルモード(ステージクリア)</h2>
+      <p id="descStage">Lv.1から順に敵を倒してステージクリア。クリアすると次のステージが解放される。Lv.10撃破を目指そう。</p>
+      <button id="openStageLv">ステージを選ぶ</button>
+    </div>
+  </div>
+
+  <!-- LEVEL SELECT -->
+  <div id="levelSelectSpeed" class="levelSelect hidden">
+    <div class="lsTitle">スピードバトル - レベルを選択</div>
+    <div class="levelGrid" id="lsGridSpeed"></div>
+  </div>
+  <div id="levelSelectSurvival" class="levelSelect hidden">
+    <div class="lsTitle">サバイバル - レベルを選択</div>
+    <div class="levelGrid" id="lsGridSurvival"></div>
+  </div>
+  <div id="levelSelectStage" class="levelSelect hidden">
+    <div class="lsTitle">レベルモード - ステージを選択</div>
+    <div class="levelGrid" id="lsGridStage"></div>
+  </div>
+
+  <!-- SPEED / STAGE BATTLE VIEW -->
+  <div id="speedView" class="hidden">
+    <div class="stageBadge hidden" id="stageBadge"></div>
+    <div class="fighters">
+      <div class="fighter you">
+        <div class="fname">YOU</div>
+        <div class="hpwrap"><div class="hpbar" id="youHpBar" style="width:100%"></div></div>
+        <div class="hptext"><span id="youHpText">100/100</span></div>
+      </div>
+      <div class="fighter enemy">
+        <div class="fname">ENEMY <span id="speedLvTag"></span></div>
+        <div class="hpwrap"><div class="hpbar" id="enHpBar" style="width:100%"></div></div>
+        <div class="hptext"><span id="enHpText">100/100</span></div>
+      </div>
+    </div>
+    <div class="arena" id="speedArena"><div class="log" id="speedLog">まもなく開始...</div></div>
+    <div class="problem-zone" id="speedProblemZone"><div class="idle-msg">問題が出るまで少々お待ちください</div></div>
+  </div>
+
+  <!-- SURVIVAL VIEW -->
+  <div id="survivalView" class="hidden">
+    <div class="survivalStats">
+      <div><span class="label">SCORE <span id="survLvTag"></span></span><span class="scoreVal" id="survScore">0</span></div>
+      <div><span class="label">MISS</span>
+        <div class="missDots" id="missDots">
+          <div class="missDot"></div><div class="missDot"></div><div class="missDot"></div><div class="missDot"></div><div class="missDot"></div>
+        </div>
+      </div>
+    </div>
+    <div class="arena" id="survArena"><div class="log" id="survLog">まもなく開始...</div></div>
+    <div class="problem-zone" id="survProblemZone"><div class="idle-msg">問題が出るまで少々お待ちください</div></div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <h2 id="overlayTitle">WIN</h2>
+    <p id="overlaySub"></p>
+    <div class="btnrow" id="overlayBtnRow">
+      <button id="retryBtn">もう一度</button>
+      <button class="secondary" id="toMenuBtn">モード選択へ</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const MAX_HP = 100;
+const el = id => document.getElementById(id);
+function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+function shakeElement(elm){
+  elm.animate([{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:220});
+}
+
+/* ============ 数字テンキー(計算モード) / かなキーボード(漢字モード) ============ */
+const PASS_COOLDOWN = 3000;
+let activePadCleanup = null;
+
+function buildNumpad(padEl, displayEl, onSubmit, submitLabel, passState, onPass){
+  if(activePadCleanup){ activePadCleanup(); activePadCleanup=null; }
+  let val = '';
+  function render(){ displayEl.textContent = val.length ? val : '0'; }
+  render();
+  padEl.innerHTML = '';
+  const keys = ['7','8','9','4','5','6','1','2','3','back','0','ok'];
+  keys.forEach(k=>{
+    const b = document.createElement('button');
+    b.type='button';
+    b.className = 'numkey' + (k==='ok' ? ' numkey-ok' : (k==='back' ? ' numkey-back':''));
+    b.textContent = k==='back' ? '⌫' : (k==='ok' ? submitLabel : k);
+    b.addEventListener('click', ()=>{
+      if(k==='back'){ val = val.slice(0,-1); render(); }
+      else if(k==='ok'){ submitNow(); }
+      else if(val.length<6){ val += k; render(); }
+    });
+    padEl.appendChild(b);
+  });
+
+  let passBtn=null, passTick=null;
+  if(passState){
+    passBtn = document.createElement('button');
+    passBtn.type='button';
+    passBtn.className='numkey numkey-pass';
+    padEl.appendChild(passBtn);
+    updatePassBtn();
+    passTick = setInterval(updatePassBtn, 200);
+    passBtn.addEventListener('click', ()=>{
+      if(Date.now() < (passState.passReadyAt||0)) return;
+      passState.passReadyAt = Date.now() + PASS_COOLDOWN;
+      cleanup();
+      onPass();
+    });
+  }
+  function updatePassBtn(){
+    const remain = (passState.passReadyAt||0) - Date.now();
+    if(remain>0){ passBtn.disabled=true; passBtn.textContent = `PASS (${Math.ceil(remain/1000)}s)`; }
+    else { passBtn.disabled=false; passBtn.textContent = 'PASS'; }
+  }
+
+  function submitNow(){ cleanup(); onSubmit(val.length ? parseInt(val,10) : null); }
+  function keyHandler(e){
+    if(e.key>='0' && e.key<='9'){ if(val.length<6){ val+=e.key; render(); } }
+    else if(e.key==='Backspace'){ val = val.slice(0,-1); render(); }
+    else if(e.key==='Enter'){ submitNow(); }
+  }
+  document.addEventListener('keydown', keyHandler);
+  function cleanup(){
+    document.removeEventListener('keydown', keyHandler);
+    if(passTick) clearInterval(passTick);
+  }
+  activePadCleanup = cleanup;
+}
+
+// スマホでキーボードが出た際、入力欄が隠れないように自動スクロール
+document.addEventListener('focusin', (e)=>{
+  if(e.target.tagName === 'INPUT'){
+    setTimeout(()=>{ e.target.scrollIntoView({behavior:'smooth', block:'center'}); }, 300);
+  }
+});
+
+// 漢字モード: 端末のキーボードで直接ひらがなを入力する方式
+function setupKanjiAnswer(inputEl, okBtn, passBtn, onSubmit, onPass, passState){
+  if(activePadCleanup){ activePadCleanup(); activePadCleanup=null; }
+  inputEl.value = '';
+  inputEl.focus();
+
+  function submitNow(){
+    const v = inputEl.value.trim();
+    cleanup();
+    onSubmit(v.length ? v : null);
+  }
+  function keyHandler(e){ if(e.key==='Enter') submitNow(); }
+  inputEl.addEventListener('keydown', keyHandler);
+  okBtn.addEventListener('click', submitNow);
+
+  function updatePassBtn(){
+    const remain = (passState.passReadyAt||0) - Date.now();
+    if(remain>0){ passBtn.disabled=true; passBtn.textContent = `PASS (${Math.ceil(remain/1000)}s)`; }
+    else { passBtn.disabled=false; passBtn.textContent='PASS'; }
+  }
+  updatePassBtn();
+  const passTick = setInterval(updatePassBtn, 200);
+  passBtn.addEventListener('click', ()=>{
+    if(Date.now() < (passState.passReadyAt||0)) return;
+    passState.passReadyAt = Date.now() + PASS_COOLDOWN;
+    cleanup();
+    onPass();
+  });
+
+  function cleanup(){
+    inputEl.removeEventListener('keydown', keyHandler);
+    clearInterval(passTick);
+  }
+  activePadCleanup = cleanup;
+}
+
+/* ---- 数式攻撃の飛翔・命中・相殺システム ---- */
+const SHOT_DURATION = 1000;
+function createProjectileEl(arenaEl, side, label, color){
+  const p = document.createElement('div');
+  p.className='projectile'; p.textContent=label; p.style.color=color;
+  p.style.left = side==='you' ? '10%' : '80%';
+  arenaEl.appendChild(p);
+  return p;
+}
+function animateProjectile(p, side, duration, stopAtPercent){
+  const fromLeft = side==='you' ? '10%' : '80%';
+  const toLeft = stopAtPercent!==undefined ? stopAtPercent+'%' : (side==='you' ? '80%' : '10%');
+  const anim = p.animate([
+    {left:fromLeft, opacity:0, transform:'translateY(-50%) scale(.6)'},
+    {opacity:1, offset:0.15},
+    {left:toLeft, opacity: stopAtPercent!==undefined ? 0 : 1, transform:'translateY(-50%) scale(1.25)', offset: stopAtPercent!==undefined ? 1 : 0.85},
+    {left:toLeft, opacity:0, transform:'translateY(-50%) scale(1.35)'}
+  ], {duration, easing:'linear'});
+  anim.onfinish = ()=> p.remove();
+}
+function showClashSpark(arenaEl){
+  const s = document.createElement('div');
+  s.className='projectile'; s.textContent='💥'; s.style.left='45%'; s.style.fontSize='24px';
+  arenaEl.appendChild(s);
+  const anim = s.animate([
+    {opacity:0, transform:'translateY(-50%) scale(.5)'},
+    {opacity:1, transform:'translateY(-50%) scale(1.4)', offset:0.4},
+    {opacity:0, transform:'translateY(-50%) scale(1.6)'}
+  ], {duration:450});
+  anim.onfinish = ()=> s.remove();
+}
+function fireShot(side, damage, arenaEl){
+  if(!sp || sp.over) return false;
+  const now = Date.now();
+  const mySlot = side==='you' ? 'playerShot' : 'enemyShot';
+  const oppSlot = side==='you' ? 'enemyShot' : 'playerShot';
+  const oppShot = sp[oppSlot];
+  let finalDamage = damage, clashed = false;
+  if(oppShot && !oppShot.canceled && now < oppShot.arriveAt){
+    clashed = true;
+    if(damage > oppShot.damage){
+      finalDamage = damage - oppShot.damage;
+      oppShot.canceled = true;
+      if(oppShot.timeoutId) clearTimeout(oppShot.timeoutId);
+    } else if(damage < oppShot.damage){
+      oppShot.damage = oppShot.damage - damage;
+      finalDamage = 0;
+    } else {
+      oppShot.canceled = true;
+      if(oppShot.timeoutId) clearTimeout(oppShot.timeoutId);
+      finalDamage = 0;
+    }
+    showClashSpark(arenaEl);
+  }
+  const shot = { damage: finalDamage, canceled: finalDamage<=0, arriveAt: now+SHOT_DURATION, side };
+  sp[mySlot] = shot;
+  const color = side==='you' ? 'var(--you)' : 'var(--enemy)';
+  const p = createProjectileEl(arenaEl, side, '+'+damage, color);
+  animateProjectile(p, side, clashed ? Math.round(SHOT_DURATION*0.5) : SHOT_DURATION, clashed ? 45 : undefined);
+  if(!shot.canceled){
+    shot.timeoutId = setTimeout(()=>{
+      if(!sp || sp.over || shot.canceled) return;
+      applyShotDamage(shot);
+    }, SHOT_DURATION);
+  }
+  return clashed;
+}
+function applyShotDamage(shot){
+  if(shot.side==='you'){ sp.enHp -= shot.damage; } else { sp.youHp -= shot.damage; }
+  speedRender();
+  checkSpeedEnd();
+}
+
+/* ============ ゲーム種別トグル(けいさん / かんじ) ============ */
+let currentKind = 'calc';
+const kindCalcBtn = el('kindCalcBtn');
+const kindKanjiBtn = el('kindKanjiBtn');
+function setKind(kind){
+  currentKind = kind;
+  kindCalcBtn.classList.toggle('active', kind==='calc');
+  kindKanjiBtn.classList.toggle('active', kind==='kanji');
+  if(kind==='calc'){
+    el('descSpeed').textContent = '計算問題が次々ランダムに出てくる。解けたら即攻撃、相手も一定間隔で攻撃してくる。先にHPを0にした方が勝ち。';
+    el('descSurvival').textContent = '計算問題が制限時間内に出題され続ける。不正解・時間切れで1ミス、5ミスでゲームオーバー。';
+    el('descStage').textContent = '計算問題でLv.1から順に敵を倒してステージクリア。クリアすると次のステージが解放される。';
+  } else {
+    el('descSpeed').textContent = '漢字の読み方問題が次々ランダムに出てくる。ひらがなで正しく答えて攻撃しよう。先にHPを0にした方が勝ち。';
+    el('descSurvival').textContent = '漢字の読み方問題が制限時間内に出題され続ける。不正解・時間切れで1ミス、5ミスでゲームオーバー。';
+    el('descStage').textContent = '漢字の読み方問題でLv.1から順に敵を倒してステージクリア。クリアすると次のステージが解放される。';
+  }
+}
+kindCalcBtn.addEventListener('click', ()=> setKind('calc'));
+kindKanjiBtn.addEventListener('click', ()=> setKind('kanji'));
+
+/* ============ 難易度パラメータ(1-10) ============ */
+function battleLevelParams(level){
+  return {
+    enemyHpMax: Math.round(100 * (1 + (level-1)*0.15)),
+    enemyDmgMin: 6 + Math.floor((level-1)*0.8),
+    enemyDmgMax: 12 + Math.floor((level-1)*1.2),
+    enemyWaitMin: Math.max(700, 2400 - (level-1)*150),
+    enemyWaitMax: Math.max(1200, 3200 - (level-1)*150),
+    enemySuccessRate: Math.min(0.92, 0.55 + (level-1)*0.035)
+  };
+}
+function survivalLevelParams(level){
+  return { timeTotal: Math.max(6, 10 - Math.floor((level-1)/2.5)) };
+}
+
+/* ---- 計算問題: レベルごとの桁数 ----
+   Lv1-2:1桁 / Lv3-5:2桁 / Lv6-8:3桁 / Lv9:4桁 / Lv10:5桁 */
+function digitsForLevel(level){
+  const lv = Math.max(1, Math.min(10, Math.round(level)));
+  if(lv<=2) return 1;
+  if(lv<=5) return 2;
+  if(lv<=8) return 3;
+  if(lv===9) return 4;
+  return 5;
+}
+function genProblem(level){
+  const digits = digitsForLevel(level);
+  const dMin = Math.pow(10, digits-1), dMax = Math.pow(10, digits)-1;
+  const ops = ['+','-','x','/'];
+  const op = ops[randInt(0,3)];
+  let a,b,result,text;
+  if(op==='+'){
+    a = randInt(dMin,dMax); b = randInt(dMin,dMax);
+    result = a+b; text = `${a} + ${b}`;
+  } else if(op==='-'){
+    a = randInt(dMin,dMax); b = randInt(Math.min(dMin,a), a);
+    result = a-b; text = `${a} − ${b}`;
+  } else if(op==='x'){
+    const md = Math.min(digits,2);
+    const mMin = Math.pow(10,md-1), mMax = Math.pow(10,md)-1;
+    a = randInt(mMin,mMax); b = randInt(mMin,mMax);
+    result = a*b; text = `${a} × ${b}`;
+  } else {
+    const dd = Math.min(digits,2);
+    const ddMin = Math.pow(10,dd-1), ddMax = Math.pow(10,dd)-1;
+    b = randInt(ddMin,ddMax);
+    const qMax = Math.max(2, Math.floor(ddMax / b));
+    result = randInt(2, Math.max(2,qMax));
+    a = b*result; text = `${a} ÷ ${b}`;
+  }
+  return {text, result};
+}
+
+/* ---- 漢字の読み方: 短文の中の1単語だけ読む形式 ----
+   レベルと漢検の目安級: Lv1=10級〜8級 / Lv2=9級〜7級 …(1級刻みでスライド) Lv10=2級〜1級
+   [前の文, 対象の単語, 読み方, 後の文] */
+const KANKEN_GRADES = ['10級','9級','8級','7級','6級','5級','4級','3級','準2級','2級','準1級','1級'];
+function kankenLabel(lv){ return KANKEN_GRADES[lv-1] + '〜' + KANKEN_GRADES[lv+1]; }
+
+const KANJI_DATA = {
+  1: [
+    ['算数の授業で','一','いち','から十までかぞえた。'],
+    ['今月はテストが','二','に','回あります。'],
+    ['本を','三','さん','さつ買った。'],
+    ['毎週末、','山','やま','に登ります。'],
+    ['この','川','かわ','はとても広い。']
+  ],
+  2: [
+    ['庭に大きな','木','き','があります。'],
+    ['公園できれいな','花','はな','を見た。'],
+    ['うちの','犬','いぬ','はとても人なつっこい。'],
+    ['近所の','猫','ねこ','がベランダに来た。'],
+    ['今日は','空','そら','がとても青い。']
+  ],
+  3: [
+    ['毎朝歩いて','学校','がっこう','に行きます。'],
+    ['明日の','天気','てんき','は晴れらしい。'],
+    ['休み時間に','音楽','おんがく','を聴くのが好きだ。'],
+    ['新しい','友達','ともだち','がたくさんできた。'],
+    ['先生と英語で','会話','かいわ','を練習した。']
+  ],
+  4: [
+    ['放課後に','図書','としょ','室で本を読む。'],
+    ['動物園でいろいろな','動物','どうぶつ','を見た。'],
+    ['この地図には','世界','せかい','中の国が載っている。'],
+    ['静かな','教室','きょうしつ','で勉強する。'],
+    ['毎日','電車','でんしゃ','で通学している。']
+  ],
+  5: [
+    ['初めての','経験','けいけん','はとても緊張した。'],
+    ['新しい記録に','挑戦','ちょうせん','する。'],
+    ['クラスで活発な','議論','ぎろん','が行われた。'],
+    ['理科の授業で植物を','観察','かんさつ','した。'],
+    ['未来の生活を','想像','そうぞう','してみる。']
+  ],
+  6: [
+    ['町はこれからさらに','発展','はってん','していくだろう。'],
+    ['地球の','環境','かんきょう','を守ることが大切だ。'],
+    ['計画がようやく','承認','しょうにん','された。'],
+    ['友達との','誤解','ごかい','がとけた。'],
+    ['その意見には多くの','批判','ひはん','が集まった。']
+  ],
+  7: [
+    ['彼の話には','矛盾','むじゅん','が多い。'],
+    ['彼の返事はいつも','曖昧','あいまい','だ。'],
+    ['祖父はとても','頑固','がんこ','な性格だ。'],
+    ['二人はついに','妥協','だきょう','した。'],
+    ['この絵はとても','抽象','ちゅうしょう','的な作品だ。']
+  ],
+  8: [
+    ['彼女のデザインはとても','洗練','せんれん','されている。'],
+    ['計画から大きく','逸脱','いつだつ','してしまった。'],
+    ['効果が','顕著','けんちょ','に現れた。'],
+    ['話し合いは','円滑','えんかつ','に進んだ。'],
+    ['不安を','払拭','ふっしょく','することができた。']
+  ],
+  9: [
+    ['この出会いを','一期一会','いちごいちえ','の気持ちで大切にする。'],
+    ['先人の知恵に学ぶことを','温故知新','おんこちしん','という。'],
+    ['怠けた結果の失敗はまさに','自業自得','じごうじとく','だ。'],
+    ['物語は','起承転結','きしょうてんけつ','の構成で書かれている。'],
+    ['状況に応じて','臨機応変','りんきおうへん','に対応する。']
+  ],
+  10: [
+    ['この世界の','森羅万象','しんらばんしょう','はすべてつながっている。'],
+    ['世の中は','有為転変','ういてんぺん','で移り変わっていく。'],
+    ['出会いと別れは','会者定離','えしゃじょうり','の理と言われる。'],
+    ['試合前は','明鏡止水','めいきょうしすい','の心境で臨んだ。'],
+    ['彼は','韋編三絶','いへんさんぜつ','というほど何度も本を読み返した。']
+  ]
+};
+function genKanjiProblem(level){
+  const lv = Math.max(1, Math.min(10, Math.round(level)));
+  const list = KANJI_DATA[lv];
+  const pick = list[randInt(0, list.length-1)];
+  return {before:pick[0], word:pick[1], reading:pick[2], after:pick[3]};
+}
+
+/* ============ NAV ============ */
+const modeSelect = el('modeSelect');
+const levelSelectSpeed = el('levelSelectSpeed');
+const levelSelectSurvival = el('levelSelectSurvival');
+const levelSelectStage = el('levelSelectStage');
+const speedView = el('speedView');
+const survivalView = el('survivalView');
+const backBtn = el('backBtn');
+const overlayEl = el('overlay');
+
+let stageUnlocked = 1;
+let navHistory = [];
+
+function hideAllScreens(){
+  [modeSelect, levelSelectSpeed, levelSelectSurvival, levelSelectStage, speedView, survivalView]
+    .forEach(v=>v.classList.add('hidden'));
+}
+function showScreen(elm, pushHistory){
+  hideAllScreens();
+  elm.classList.remove('hidden');
+  backBtn.classList.toggle('hidden', elm===modeSelect);
+  overlayEl.classList.remove('show');
+  stopSpeedMode();
+  stopSurvivalMode();
+  if(pushHistory) navHistory.push(elm);
+}
+function goToMenu(){ navHistory = []; showScreen(modeSelect, false); }
+function goBack(){
+  navHistory.pop();
+  const prev = navHistory.pop();
+  if(prev){ showScreen(prev, true); } else { goToMenu(); }
+}
+backBtn.addEventListener('click', goBack);
+el('toMenuBtn').addEventListener('click', goToMenu);
+
+function buildLevelGrid(container, opts){
+  container.innerHTML = '';
+  for(let lv=1; lv<=10; lv++){
+    const btn = document.createElement('button');
+    btn.className = 'levelBtn';
+    const locked = opts.lockedCheck ? opts.lockedCheck(lv) : false;
+    const cleared = opts.clearedCheck ? opts.clearedCheck(lv) : false;
+    if(locked) btn.classList.add('locked');
+    if(cleared) btn.classList.add('cleared');
+    btn.disabled = locked;
+    const subLabel = locked ? 'LOCKED' : (opts.subLabelFn ? opts.subLabelFn(lv) : 'Lv.'+lv);
+    btn.innerHTML = `<span class="lvnum">${locked?'🔒':lv}</span><span class="lvsub">${subLabel}</span>`;
+    btn.addEventListener('click', ()=> opts.onSelect(lv));
+    container.appendChild(btn);
+  }
+}
+
+el('openSpeedLv').addEventListener('click', ()=>{
+  buildLevelGrid(el('lsGridSpeed'), {
+    subLabelFn: currentKind==='kanji' ? kankenLabel : undefined,
+    onSelect:(lv)=>{ showScreen(speedView, true); startSpeedMode(lv, false, null, currentKind); }
+  });
+  showScreen(levelSelectSpeed, true);
+});
+el('openSurvivalLv').addEventListener('click', ()=>{
+  buildLevelGrid(el('lsGridSurvival'), {
+    subLabelFn: currentKind==='kanji' ? kankenLabel : undefined,
+    onSelect:(lv)=>{ showScreen(survivalView, true); startSurvivalMode(lv, currentKind); }
+  });
+  showScreen(levelSelectSurvival, true);
+});
+function openStageSelect(){
+  buildLevelGrid(el('lsGridStage'), {
+    subLabelFn: currentKind==='kanji' ? kankenLabel : undefined,
+    lockedCheck:(lv)=> lv > stageUnlocked,
+    clearedCheck:(lv)=> lv < stageUnlocked,
+    onSelect:(lv)=>{ showScreen(speedView, true); startSpeedMode(lv, true, lv, currentKind); }
+  });
+  showScreen(levelSelectStage, true);
+}
+el('openStageLv').addEventListener('click', openStageSelect);
+
+/* ============ SPEED / STAGE BATTLE ============ */
+let sp = null;
+
+function speedRender(){
+  el('youHpBar').style.width = Math.max(0,sp.youHp)+'%';
+  el('enHpBar').style.width = Math.max(0, sp.enHp/sp.enHpMax*100)+'%';
+  el('youHpText').textContent = Math.max(0,sp.youHp)+'/100';
+  el('enHpText').textContent = Math.max(0,sp.enHp)+'/'+sp.enHpMax;
+}
+function startSpeedMode(level, isStage, stageNum, kind){
+  const params = battleLevelParams(level);
+  sp = {
+    youHp:MAX_HP, enHp:params.enemyHpMax, enHpMax:params.enemyHpMax,
+    over:false, enemyTimer:null, streak:0, level, params,
+    isStage: !!isStage, stageNum: stageNum,
+    playerShot:null, enemyShot:null, passReadyAt:0, kind: kind || 'calc'
+  };
+  const badge = el('stageBadge');
+  if(isStage){ badge.textContent = `STAGE ${stageNum} / 10`; badge.classList.remove('hidden'); }
+  else { badge.classList.add('hidden'); }
+  el('speedLvTag').textContent = 'Lv.'+level;
+  speedRender();
+  el('speedLog').innerHTML = 'バトル開始！ 出てきた問題を解いて攻撃しよう';
+  scheduleEnemyAttack();
+  nextSpeedProblem();
+}
+function stopSpeedMode(){
+  if(sp){
+    if(sp.enemyTimer) clearTimeout(sp.enemyTimer);
+    if(sp.playerShot && sp.playerShot.timeoutId) clearTimeout(sp.playerShot.timeoutId);
+    if(sp.enemyShot && sp.enemyShot.timeoutId) clearTimeout(sp.enemyShot.timeoutId);
+  }
+  sp = null;
+}
+
+function nextSpeedProblem(){
+  if(!sp || sp.over) return;
+  const effLevel = Math.min(10, sp.level + Math.floor(sp.streak/5));
+  const problem = sp.kind==='kanji' ? genKanjiProblem(effLevel) : genProblem(effLevel);
+  const answer = sp.kind==='kanji' ? problem.reading : problem.result;
+  const startTime = Date.now();
+
+  if(sp.kind==='kanji'){
+    el('speedProblemZone').innerHTML = `
+      <div class="kanjiSentence"><span class="sentPlain">${problem.before}</span><span class="sentTarget">${problem.word}</span><span class="sentPlain">${problem.after}</span></div>
+      <div class="kanjiPrompt">色文字の部分をひらがなで入力</div>
+      <div class="kanjiInputRow">
+        <input type="text" id="spKanjiInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <button id="spKanjiOk">攻撃!</button>
+      </div>
+      <button class="passBtnStandalone" id="spKanjiPass">PASS</button>
+    `;
+  } else {
+    el('speedProblemZone').innerHTML = `
+      <div class="equation">${problem.text}<span class="op">=</span>?</div>
+      <div class="answerDisplay" id="spAnswerDisplay">0</div>
+      <div class="numpad" id="spNumpad"></div>
+    `;
+  }
+
+  function submit(val){
+    if(!sp || sp.over) return;
+    const elapsed = (Date.now()-startTime)/1000;
+    const correct = (val !== null && val === answer);
+    const shown = sp.kind==='kanji' ? problem.word : problem.text;
+    if(correct){
+      sp.streak++;
+      let dmg = randInt(8,14);
+      if(elapsed < 2) dmg += 5;
+      const clashed = fireShot('you', dmg, el('speedArena'));
+      el('speedLog').innerHTML = `<b>命中!</b> ${shown}=${answer} → 数式攻撃を発射(${dmg})${elapsed<2?' スピードボーナス!':''}${clashed?' <b>※相殺!</b>':''}`;
+    } else {
+      sp.streak = 0;
+      shakeElement(el('speedProblemZone'));
+      el('speedLog').innerHTML = `<b>ミス...</b> 正解は ${answer}`;
+    }
+    nextSpeedProblem();
+  }
+  function pass(){
+    el('speedLog').innerHTML = `<span style="color:var(--sub)">パスした(正解: ${answer})</span>`;
+    nextSpeedProblem();
+  }
+
+  if(sp.kind==='kanji'){
+    setupKanjiAnswer(el('spKanjiInput'), el('spKanjiOk'), el('spKanjiPass'), submit, pass, sp);
+  } else {
+    buildNumpad(el('spNumpad'), el('spAnswerDisplay'), submit, '攻撃!', sp, pass);
+  }
+}
+
+function scheduleEnemyAttack(){
+  if(!sp || sp.over) return;
+  const wait = randInt(sp.params.enemyWaitMin, sp.params.enemyWaitMax);
+  sp.enemyTimer = setTimeout(()=>{
+    if(!sp || sp.over) return;
+    const success = Math.random() < sp.params.enemySuccessRate;
+    if(success){
+      const dmg = randInt(sp.params.enemyDmgMin, sp.params.enemyDmgMax);
+      const clashed = fireShot('enemy', dmg, el('speedArena'));
+      el('speedLog').innerHTML = `敵が数式攻撃を発射!(${dmg})${clashed?' <b>※相殺!</b>':''}`;
+    }
+    if(!sp.over) scheduleEnemyAttack();
+  }, wait);
+}
+
+function checkSpeedEnd(){
+  if(sp.enHp<=0){ endSpeed(true); return true; }
+  if(sp.youHp<=0){ endSpeed(false); return true; }
+  return false;
+}
+
+function endSpeed(win){
+  sp.over = true;
+  if(sp.enemyTimer) clearTimeout(sp.enemyTimer);
+  const isStage = sp.isStage, stageNum = sp.stageNum, kind = sp.kind;
+
+  el('overlayTitle').textContent = win ? (isStage?'STAGE CLEAR':'WIN') : 'LOSE';
+  el('overlayTitle').style.color = win ? 'var(--you)' : 'var(--enemy)';
+
+  if(isStage && win){
+    stageUnlocked = Math.max(stageUnlocked, stageNum+1);
+    if(stageNum >= 10){
+      el('overlayTitle').textContent = 'ALL CLEAR!';
+      el('overlaySub').textContent = '全10ステージ制覇！おめでとう！';
+      el('overlayBtnRow').innerHTML = `<button class="secondary" id="toMenuBtn2">モード選択へ</button>`;
+      el('toMenuBtn2').addEventListener('click', goToMenu);
+    } else {
+      el('overlaySub').textContent = `STAGE ${stageNum} 突破！ 次はLv.${stageNum+1}`;
+      el('overlayBtnRow').innerHTML = `<button id="nextStageBtn">次のステージへ</button><button class="secondary" id="toMenuBtn2">ステージ選択へ</button>`;
+      el('nextStageBtn').addEventListener('click', ()=>{
+        overlayEl.classList.remove('show');
+        showScreen(speedView, true);
+        startSpeedMode(stageNum+1, true, stageNum+1, kind);
+      });
+      el('toMenuBtn2').addEventListener('click', openStageSelect);
+    }
+  } else if(isStage && !win){
+    el('overlaySub').textContent = `STAGE ${stageNum} で敗北... もう一度挑戦しよう`;
+    el('overlayBtnRow').innerHTML = `<button id="retryStageBtn">もう一度</button><button class="secondary" id="toMenuBtn2">ステージ選択へ</button>`;
+    el('retryStageBtn').addEventListener('click', ()=>{
+      overlayEl.classList.remove('show');
+      showScreen(speedView, true);
+      startSpeedMode(stageNum, true, stageNum, kind);
+    });
+    el('toMenuBtn2').addEventListener('click', openStageSelect);
+  } else {
+    el('overlaySub').textContent = '';
+    el('overlayBtnRow').innerHTML = `<button id="retryBtn">もう一度</button><button class="secondary" id="toMenuBtn">モード選択へ</button>`;
+    el('retryBtn').addEventListener('click', ()=>{
+      const lv = sp ? sp.level : 1;
+      overlayEl.classList.remove('show');
+      showScreen(speedView, true);
+      startSpeedMode(lv, false, null, kind);
+    });
+    el('toMenuBtn').addEventListener('click', goToMenu);
+  }
+  overlayEl.classList.add('show');
+}
+
+/* ============ SURVIVAL MODE ============ */
+let sv = null;
+
+function survRender(){
+  el('survScore').textContent = sv.score;
+  const dots = el('missDots').children;
+  for(let i=0;i<5;i++){ dots[i].classList.toggle('used', i < sv.miss); }
+}
+function startSurvivalMode(level, kind){
+  const params = survivalLevelParams(level);
+  sv = { score:0, miss:0, over:false, tickId:null, level, params, passReadyAt:0, kind: kind || 'calc' };
+  el('survLvTag').textContent = 'Lv.'+level;
+  survRender();
+  el('survLog').innerHTML = `サバイバル開始！ ${params.timeTotal}秒以内に答えよう。5ミスで終了。`;
+  nextSurvProblem();
+}
+function stopSurvivalMode(){
+  if(sv && sv.tickId) clearInterval(sv.tickId);
+  sv = null;
+}
+
+function nextSurvProblem(){
+  if(!sv || sv.over) return;
+  const effLevel = Math.min(10, sv.level + Math.floor(sv.score/5));
+  const problem = sv.kind==='kanji' ? genKanjiProblem(effLevel) : genProblem(effLevel);
+  const answer = sv.kind==='kanji' ? problem.reading : problem.result;
+  const TIME_TOTAL = sv.params.timeTotal;
+  let timeLeft = TIME_TOTAL;
+
+  if(sv.kind==='kanji'){
+    el('survProblemZone').innerHTML = `
+      <div class="kanjiSentence"><span class="sentPlain">${problem.before}</span><span class="sentTarget">${problem.word}</span><span class="sentPlain">${problem.after}</span></div>
+      <div class="kanjiPrompt">色文字の部分をひらがなで入力</div>
+      <div class="kanjiInputRow">
+        <input type="text" id="svKanjiInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <button id="svKanjiOk">決定</button>
+      </div>
+      <button class="passBtnStandalone" id="svKanjiPass">PASS</button>
+      <div class="timerbar"><div class="timerfill" id="svTimerFill" style="width:100%"></div></div>
+    `;
+  } else {
+    el('survProblemZone').innerHTML = `
+      <div class="equation">${problem.text}<span class="op">=</span>?</div>
+      <div class="answerDisplay" id="svAnswerDisplay">0</div>
+      <div class="numpad" id="svNumpad"></div>
+      <div class="timerbar"><div class="timerfill" id="svTimerFill" style="width:100%"></div></div>
+    `;
+  }
+
+  const timerFill = el('svTimerFill');
+  sv.tickId = setInterval(()=>{
+    timeLeft -= 0.1;
+    const pct = Math.max(0, timeLeft/TIME_TOTAL*100);
+    timerFill.style.width = pct+'%';
+    if(pct < 30) timerFill.classList.add('danger');
+    if(timeLeft<=0){ finish(null); }
+  },100);
+
+  function finish(val){
+    clearInterval(sv.tickId);
+    if(!sv || sv.over) return;
+    const correct = (val!==null && val===answer);
+    const shown = sv.kind==='kanji' ? problem.word : problem.text;
+    if(correct){
+      sv.score++;
+      el('survLog').innerHTML = `<b>正解!</b> ${shown} = ${answer}`;
+    } else {
+      sv.miss++;
+      shakeElement(el('survProblemZone'));
+      el('survLog').innerHTML = val===null ? `<b>時間切れ...</b> 正解は ${answer}` : `<b>不正解...</b> 正解は ${answer}`;
+    }
+    survRender();
+    if(sv.miss >= 5){ endSurvival(); return; }
+    nextSurvProblem();
+  }
+  function pass(){
+    clearInterval(sv.tickId);
+    if(!sv || sv.over) return;
+    el('survLog').innerHTML = `<span style="color:var(--sub)">パスした(正解: ${answer})</span>`;
+    nextSurvProblem();
+  }
+
+  if(sv.kind==='kanji'){
+    setupKanjiAnswer(el('svKanjiInput'), el('svKanjiOk'), el('svKanjiPass'), finish, pass, sv);
+  } else {
+    buildNumpad(el('svNumpad'), el('svAnswerDisplay'), finish, '決定', sv, pass);
+  }
+}
+
+function endSurvival(){
+  sv.over = true;
+  if(sv.tickId) clearInterval(sv.tickId);
+  el('overlayTitle').textContent = 'GAME OVER';
+  el('overlayTitle').style.color = 'var(--enemy)';
+  el('overlaySub').textContent = `Lv.${sv.level} / スコア: ${sv.score}問正解`;
+  el('overlayBtnRow').innerHTML = `<button id="retryBtn">もう一度</button><button class="secondary" id="toMenuBtn">モード選択へ</button>`;
+  el('retryBtn').addEventListener('click', ()=>{
+    const lv = sv ? sv.level : 1, kind = sv ? sv.kind : 'calc';
+    overlayEl.classList.remove('show');
+    showScreen(survivalView, true);
+    startSurvivalMode(lv, kind);
+  });
+  el('toMenuBtn').addEventListener('click', goToMenu);
+  overlayEl.classList.add('show');
+}
+
+navHistory.push(modeSelect);
+</script>
+</body>
+</html>
