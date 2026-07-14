@@ -153,6 +153,27 @@
   .speedChip.active{background:var(--gold);color:#1a1300;border-color:var(--gold);}
   .settingsHint{font-family:Arial,sans-serif;font-size:11.5px;color:var(--sub);max-width:420px;line-height:1.7;}
 
+  /* ---------- 準備中(オンライン対戦・新教科)のロック表現 ---------- */
+  .lockedTag{font-size:9px;font-weight:700;color:var(--sub);border:1px solid var(--line);border-radius:10px;padding:2px 7px;margin-left:6px;vertical-align:middle;letter-spacing:0;}
+  .kindBtn.locked{opacity:.55;cursor:pointer;}
+  .modeCard.online h2{color:var(--sub);}
+  .modeCard.online{opacity:.85;}
+  button.lockedBtn{background:none;color:var(--sub);border-style:dashed;}
+
+  /* ---------- TOAST ---------- */
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(16px);background:#1a1e28;border:1px solid var(--line);color:var(--text);font-family:Arial,sans-serif;font-size:12.5px;padding:10px 18px;border-radius:8px;box-shadow:0 10px 30px -10px rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .25s ease, transform .25s ease;z-index:50;max-width:88vw;text-align:center;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* ---------- PROFILE / 称号 / バッジ ---------- */
+  .profileSection{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:14px;}
+  .profileNameInput{font-size:16px;text-align:center;background:#0b0d12;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 12px;font-family:'Courier New',Consolas,monospace;width:200px;}
+  .titleRow{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:420px;}
+  .titleChip{font-family:Arial,sans-serif;font-size:12px;padding:6px 12px;border-radius:14px;border:1px dashed var(--line);color:var(--sub);}
+  .badgeGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:360px;margin:2px auto 0;}
+  .badgeSlot{aspect-ratio:1;border-radius:10px;border:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;opacity:.5;}
+  .badgeSlot .bIcon{font-size:22px;filter:grayscale(1);}
+  .badgeSlot .bName{font-size:9px;color:var(--sub);text-align:center;font-family:Arial,sans-serif;padding:0 4px;line-height:1.3;}
+
   /* ---------- GAME FEEL(演出) ---------- */
   .readyGo{font-family:Arial,sans-serif;font-weight:900;font-size:46px;letter-spacing:.18em;color:var(--gold);text-shadow:0 0 18px rgba(255,207,77,.45);animation:rgIn .5s ease;}
   .readyGo.go{color:var(--you);text-shadow:0 0 22px rgba(63,208,255,.6);animation:rgGo .5s ease;}
@@ -188,6 +209,7 @@
   <header>
     <h1 id="titleText">ケイサン<span>バトル</span></h1>
     <div style="display:flex;gap:8px;align-items:center;">
+      <button class="backBtn" id="profileBtn" title="プロフィール・称号・バッジ">👤</button>
       <button class="backBtn" id="settingsBtn" title="設定(入力スピードなど)">⚙️</button>
       <button class="backBtn" id="muteBtn" title="効果音 ON/OFF">🔊</button>
       <button class="backBtn hidden" id="backBtn">← 戻る</button>
@@ -196,10 +218,7 @@
 
   <!-- MODE SELECT -->
   <div id="modeSelect">
-    <div class="kindToggle">
-      <button class="kindBtn active" id="kindCalcBtn">🔢 けいさん</button>
-      <button class="kindBtn" id="kindKanjiBtn">🈶 かんじの読み方</button>
-    </div>
+    <div class="kindToggle" id="kindToggle"></div>
     <div class="modeCard speed">
       <h2>⚡ スピードバトル</h2>
       <p id="descSpeed">問題が次々ランダムに出てくる。解けたら即攻撃、相手も一定間隔で攻撃してくる。先にHPを0にした方が勝ち。</p>
@@ -219,6 +238,11 @@
       <h2>🎯 ちょうどいいバトル</h2>
       <p id="descAdaptive">レベル選択なしですぐ挑戦。正解が続くと問題がだんだん難しくなり、間違えるとやさしく戻る。自分にちょうどいい難易度が自然に見つかるモード。</p>
       <button id="openAdaptive">たたかう</button>
+    </div>
+    <div class="modeCard online">
+      <h2>🌐 オンライン対戦 <span class="lockedTag">準備中</span></h2>
+      <p>CPUではなく他のプレイヤーとリアルタイムで対戦できるモード。プロフィール・称号・バッジと合わせて準備を進めています。</p>
+      <button id="openOnline" class="lockedBtn">近日公開</button>
     </div>
   </div>
 
@@ -291,6 +315,27 @@
     </div>
     <div class="btnrow"><button class="secondary" id="settingsCloseBtn">閉じる</button></div>
   </div>
+
+  <div class="overlay" id="profilePanel">
+    <h2 style="color:var(--gold)">👤 プロフィール</h2>
+    <div class="profileSection">
+      <label class="settingsLabel" for="profileNameInput">プレイヤー名</label>
+      <input type="text" id="profileNameInput" maxlength="12" class="profileNameInput" autocomplete="off">
+    </div>
+    <div class="profileSection">
+      <div class="settingsLabel">称号</div>
+      <div class="titleRow" id="titleRow"></div>
+      <div class="settingsHint">称号はオンライン対戦の実装にあわせて解放していく予定です。今はまだ準備中です。</div>
+    </div>
+    <div class="profileSection">
+      <div class="settingsLabel">バッジ</div>
+      <div class="badgeGrid" id="badgeGrid"></div>
+      <div class="settingsHint">バトルで条件を満たすと獲得できるようになる予定です(現在準備中)。</div>
+    </div>
+    <div class="btnrow"><button class="secondary" id="profileCloseBtn">閉じる</button></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
 
 </div>
 
@@ -376,6 +421,70 @@ el('settingsBtn').addEventListener('click', ()=>{
   settingsPanel.classList.add('show');
 });
 el('settingsCloseBtn').addEventListener('click', ()=> settingsPanel.classList.remove('show'));
+
+/* ============ トースト(準備中メッセージなどの短い通知) ============ */
+let toastTimer = null;
+function showToast(msg){
+  const t = el('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> t.classList.remove('show'), 2200);
+}
+
+/* ============ プロフィール・称号・バッジ ============
+   ここではデータの型とプレイヤー名の保存だけを用意する(前段階の設定)。
+   称号・バッジの獲得条件やオンライン対戦との連携は今後あらためて実装する。 */
+const BADGE_CATALOG = [
+  { id:'first_battle', icon:'⚔️', name:'はじめの一歩' },
+  { id:'first_win',    icon:'🏆', name:'初勝利' },
+  { id:'streak5',      icon:'🔥', name:'5連勝' },
+  { id:'stage_clear',  icon:'🏁', name:'全ステージ制覇' },
+  { id:'kanji_master', icon:'🈶', name:'漢字マスター' },
+  { id:'adaptive_10',  icon:'🎯', name:'実力者' },
+  { id:'no_miss',      icon:'💎', name:'ノーミス撃破' },
+  { id:'online_first', icon:'🌐', name:'オンライン初対戦' }
+];
+const TITLE_CATALOG = [
+  { id:'beginner', name:'新米チャレンジャー' },
+  { id:'ace',      name:'計算の達人' },
+  { id:'sage',     name:'博識な賢者' }
+];
+function loadProfile(){
+  try{
+    const saved = JSON.parse(localStorage.getItem('kb_profile'));
+    if(saved && typeof saved==='object') return Object.assign({ name:'名無しさん', badges:[], equippedTitle:null }, saved);
+  }catch(e){}
+  return { name:'名無しさん', badges:[], equippedTitle:null };
+}
+function saveProfile(){ localStorage.setItem('kb_profile', JSON.stringify(profile)); }
+let profile = loadProfile();
+
+function renderProfilePanel(){
+  el('profileNameInput').value = profile.name;
+  el('titleRow').innerHTML = TITLE_CATALOG.map(t=>`<span class="titleChip">🔒 ${t.name}</span>`).join('');
+  el('badgeGrid').innerHTML = BADGE_CATALOG.map(b=>{
+    const owned = profile.badges.includes(b.id);
+    return `<div class="badgeSlot" style="${owned?'opacity:1':''}"><span class="bIcon" style="${owned?'filter:none':''}">${owned?b.icon:'🔒'}</span><span class="bName">${b.name}</span></div>`;
+  }).join('');
+}
+el('profileBtn').addEventListener('click', ()=>{
+  renderProfilePanel();
+  el('profilePanel').classList.add('show');
+});
+el('profileCloseBtn').addEventListener('click', ()=>{
+  profile.name = el('profileNameInput').value.trim() || '名無しさん';
+  saveProfile();
+  el('profilePanel').classList.remove('show');
+});
+
+/* ============ オンライン対戦(準備中) ============
+   静的なGitHub Pagesだけではリアルタイム通信ができないため、実装時は
+   別途リレー用のサーバー(WebSocket等)が必要になる。攻撃処理を
+   「自分の入力」と「相手の入力」に分離した設計は既にあるので拡張しやすい。 */
+el('openOnline').addEventListener('click', ()=>{
+  showToast('🌐 オンライン対戦は準備中です。お楽しみに!');
+});
 
 /* ============ READY GO 演出 & ミス/パス後の解説タイム ============ */
 const BREAK_MS = 3000;
@@ -638,14 +747,39 @@ function applyShotDamage(shot){
   checkSpeedEnd();
 }
 
-/* ============ ゲーム種別トグル(けいさん / かんじ) ============ */
+/* ============ 教科トグル(けいさん / かんじ / 今後追加予定の教科) ============
+   ready:false の教科はまだ問題データがないため、選択すると準備中トーストを出すだけの
+   プレースホルダー。中身(問題データ)は今後あらためて実装する。 */
+const SUBJECTS = [
+  { id:'calc',    icon:'🔢', label:'けいさん',       ready:true },
+  { id:'kanji',   icon:'🈶', label:'かんじの読み方',  ready:true },
+  { id:'history', icon:'📜', label:'れきし',         ready:false },
+  { id:'chem',    icon:'🧪', label:'かがく',         ready:false },
+  { id:'english', icon:'🔤', label:'えいご',         ready:false },
+  { id:'music',   icon:'🎵', label:'おんがく',       ready:false },
+  { id:'art',     icon:'🎨', label:'びじゅつ',       ready:false }
+];
 let currentKind = 'calc';
-const kindCalcBtn = el('kindCalcBtn');
-const kindKanjiBtn = el('kindKanjiBtn');
+function renderSubjectToggle(){
+  const wrap = el('kindToggle');
+  wrap.innerHTML = SUBJECTS.map(s=>`
+    <button class="kindBtn ${s.ready ? '' : 'locked'} ${currentKind===s.id ? 'active' : ''}" data-subject="${s.id}">
+      ${s.icon} ${s.label}${s.ready ? '' : '<span class="lockedTag">準備中</span>'}
+    </button>
+  `).join('');
+  wrap.querySelectorAll('.kindBtn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const s = SUBJECTS.find(x=>x.id===b.dataset.subject);
+      if(!s.ready){ showToast(`「${s.label}」モードは準備中です。お楽しみに!`); return; }
+      setKind(s.id);
+    });
+  });
+}
 function setKind(kind){
   currentKind = kind;
-  kindCalcBtn.classList.toggle('active', kind==='calc');
-  kindKanjiBtn.classList.toggle('active', kind==='kanji');
+  document.querySelectorAll('#kindToggle .kindBtn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.subject===kind);
+  });
   if(kind==='calc'){
     el('descSpeed').textContent = '計算問題が次々ランダムに出てくる。解けたら即攻撃、相手も一定間隔で攻撃してくる。先にHPを0にした方が勝ち。';
     el('descSurvival').textContent = '計算問題が制限時間内に出題され続ける。不正解・時間切れで1ミス、5ミスでゲームオーバー。';
@@ -658,8 +792,7 @@ function setKind(kind){
     el('descAdaptive').textContent = 'レベル選択なしですぐ挑戦。漢字の読み方の正解が続くとだんだん難しくなり、間違えるとやさしく戻る。自分にちょうどいい難易度が自然に見つかるモード。';
   }
 }
-kindCalcBtn.addEventListener('click', ()=> setKind('calc'));
-kindKanjiBtn.addEventListener('click', ()=> setKind('kanji'));
+renderSubjectToggle();
 
 /* ============ 難易度パラメータ(1-10) ============ */
 function battleLevelParams(level){
