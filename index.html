@@ -145,6 +145,14 @@
   .overlay button{font-family:Arial,sans-serif;font-weight:700;padding:10px 22px;border-radius:6px;border:1px solid var(--line);background:var(--gold);color:#1a1300;cursor:pointer;font-size:13px;}
   .overlay button.secondary{background:none;color:var(--text);}
 
+  /* ---------- SETTINGS ---------- */
+  .settingsSection{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .settingsLabel{font-family:Arial,sans-serif;font-size:13px;color:var(--text);letter-spacing:.04em;}
+  .speedChoices{display:flex;gap:8px;margin:6px 0;}
+  .speedChip{font-family:Arial,sans-serif;font-weight:700;font-size:13px;padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--sub);cursor:pointer;}
+  .speedChip.active{background:var(--gold);color:#1a1300;border-color:var(--gold);}
+  .settingsHint{font-family:Arial,sans-serif;font-size:11.5px;color:var(--sub);max-width:420px;line-height:1.7;}
+
   /* ---------- GAME FEEL(演出) ---------- */
   .readyGo{font-family:Arial,sans-serif;font-weight:900;font-size:46px;letter-spacing:.18em;color:var(--gold);text-shadow:0 0 18px rgba(255,207,77,.45);animation:rgIn .5s ease;}
   .readyGo.go{color:var(--you);text-shadow:0 0 22px rgba(63,208,255,.6);animation:rgGo .5s ease;}
@@ -180,6 +188,7 @@
   <header>
     <h1 id="titleText">ケイサン<span>バトル</span></h1>
     <div style="display:flex;gap:8px;align-items:center;">
+      <button class="backBtn" id="settingsBtn" title="設定(入力スピードなど)">⚙️</button>
       <button class="backBtn" id="muteBtn" title="効果音 ON/OFF">🔊</button>
       <button class="backBtn hidden" id="backBtn">← 戻る</button>
     </div>
@@ -269,6 +278,20 @@
     </div>
   </div>
 
+  <div class="overlay" id="settingsPanel">
+    <h2 style="color:var(--gold)">⚙️ 設定</h2>
+    <div class="settingsSection">
+      <div class="settingsLabel">入力スピード(自分に合わせて調整)</div>
+      <div class="speedChoices" id="speedChoices">
+        <button class="speedChip" data-speed="slow">🐢 ゆっくり</button>
+        <button class="speedChip" data-speed="normal">🚶 ふつう</button>
+        <button class="speedChip" data-speed="fast">🐇 はやい</button>
+      </div>
+      <div class="settingsHint">タイピングの速さは人それぞれ。選んだスピードに合わせて、敵の攻撃間隔・サバイバルの制限時間・スピードボーナスの基準がまとめて調整されます。ゆっくり派の人は「ゆっくり」を選ぶと余裕を持って戦えます。</div>
+    </div>
+    <div class="btnrow"><button class="secondary" id="settingsCloseBtn">閉じる</button></div>
+  </div>
+
 </div>
 
 <script src="kanji-data.js"></script>
@@ -324,6 +347,35 @@ muteBtn.addEventListener('click', ()=>{
   Sfx.setMuted(!Sfx.isMuted());
   muteBtn.textContent = Sfx.isMuted() ? '🔇' : '🔊';
 });
+
+/* ============ 設定: 入力スピード(タイピング速度の個人差を吸収) ============ */
+const SPEED_PRESETS = {
+  slow:   { waitMul: 1.5,  timeMul: 1.5,  bonusSec: 3.5 },
+  normal: { waitMul: 1.0,  timeMul: 1.0,  bonusSec: 2.0 },
+  fast:   { waitMul: 0.7,  timeMul: 0.75, bonusSec: 1.3 }
+};
+let inputSpeed = localStorage.getItem('kb_inputSpeed') || 'normal';
+if(!SPEED_PRESETS[inputSpeed]) inputSpeed = 'normal';
+function currentSpeedPreset(){ return SPEED_PRESETS[inputSpeed]; }
+
+const settingsPanel = el('settingsPanel');
+function refreshSpeedChips(){
+  document.querySelectorAll('.speedChip').forEach(b=>{
+    b.classList.toggle('active', b.dataset.speed === inputSpeed);
+  });
+}
+document.querySelectorAll('.speedChip').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    inputSpeed = b.dataset.speed;
+    localStorage.setItem('kb_inputSpeed', inputSpeed);
+    refreshSpeedChips();
+  });
+});
+el('settingsBtn').addEventListener('click', ()=>{
+  refreshSpeedChips();
+  settingsPanel.classList.add('show');
+});
+el('settingsCloseBtn').addEventListener('click', ()=> settingsPanel.classList.remove('show'));
 
 /* ============ READY GO 演出 & ミス/パス後の解説タイム ============ */
 const BREAK_MS = 3000;
@@ -611,17 +663,19 @@ kindKanjiBtn.addEventListener('click', ()=> setKind('kanji'));
 
 /* ============ 難易度パラメータ(1-10) ============ */
 function battleLevelParams(level){
+  const preset = currentSpeedPreset();
   return {
     enemyHpMax: Math.round(100 * (1 + (level-1)*0.15)),
     enemyDmgMin: 6 + Math.floor((level-1)*0.8),
     enemyDmgMax: 12 + Math.floor((level-1)*1.2),
-    enemyWaitMin: Math.max(700, 2400 - (level-1)*150),
-    enemyWaitMax: Math.max(1200, 3200 - (level-1)*150),
+    enemyWaitMin: Math.round(Math.max(700, 2400 - (level-1)*150) * preset.waitMul),
+    enemyWaitMax: Math.round(Math.max(1200, 3200 - (level-1)*150) * preset.waitMul),
     enemySuccessRate: Math.min(0.92, 0.55 + (level-1)*0.035)
   };
 }
 function survivalLevelParams(level){
-  return { timeTotal: Math.max(6, 10 - Math.floor((level-1)/2.5)) };
+  const preset = currentSpeedPreset();
+  return { timeTotal: Math.max(4, Math.round(Math.max(6, 10 - Math.floor((level-1)/2.5)) * preset.timeMul)) };
 }
 
 /* ---- 計算問題: レベルごとの桁数 ----
@@ -881,9 +935,10 @@ function nextSpeedProblem(){
       sp.streak++;
       Sfx.correct();
       let dmg = randInt(8,14);
-      if(elapsed < 2) dmg += 5;
+      const speedBonus = elapsed < currentSpeedPreset().bonusSec;
+      if(speedBonus) dmg += 5;
       const clashed = fireShot('you', dmg, el('speedArena'));
-      el('speedLog').innerHTML = `<b>命中!</b> ${shown}=${answer} → 数式攻撃を発射(${dmg})${elapsed<2?' スピードボーナス!':''}${clashed?' <b>※相殺!</b>':''}`;
+      el('speedLog').innerHTML = `<b>命中!</b> ${shown}=${answer} → 数式攻撃を発射(${dmg})${speedBonus?' スピードボーナス!':''}${clashed?' <b>※相殺!</b>':''}`;
       nextSpeedProblem();
     } else {
       sp.streak = 0;
