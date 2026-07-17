@@ -60,6 +60,8 @@
   .modeCard.survival h2{color:var(--enemy);}
   .modeCard.stage h2{color:var(--gold);}
   .modeCard.diagnostic h2{color:var(--ok);}
+  .modeCard.review h2{color:var(--danger);}
+  .modeCard button:disabled{opacity:.4;cursor:not-allowed;}
   .modeCard p{margin:0;font-size:12.5px;color:var(--sub);line-height:1.6;font-family:Arial,sans-serif;}
   .modeCard button{align-self:flex-start;font-family:Arial,sans-serif;font-weight:700;font-size:12px;letter-spacing:.06em;padding:8px 18px;border-radius:6px;border:1px solid var(--line);background:var(--gold);color:#1a1300;cursor:pointer;margin-top:4px;}
 
@@ -163,9 +165,9 @@
   /* ---------- SETTINGS ---------- */
   .settingsSection{display:flex;flex-direction:column;align-items:center;gap:6px;}
   .settingsLabel{font-family:Arial,sans-serif;font-size:13px;color:var(--text);letter-spacing:.04em;}
-  .speedChoices{display:flex;gap:8px;margin:6px 0;}
-  .speedChip{font-family:Arial,sans-serif;font-weight:700;font-size:13px;padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--sub);cursor:pointer;}
-  .speedChip.active{background:var(--gold);color:#1a1300;border-color:var(--gold);}
+  .speedChoices{display:flex;gap:8px;margin:6px 0;flex-wrap:wrap;justify-content:center;}
+  .speedChoices .speedChip{font-family:Arial,sans-serif;font-weight:700;font-size:12.5px;padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--sub);cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease;}
+  .speedChoices .speedChip.active{background:var(--gold);color:#1a1300;border-color:var(--gold);}
   .settingsHint{font-family:Arial,sans-serif;font-size:11.5px;color:var(--sub);max-width:420px;line-height:1.7;}
 
   /* ---------- 準備中(オンライン対戦・新教科)のロック表現 ---------- */
@@ -232,6 +234,7 @@
   <header>
     <h1 id="titleText">ケイサン<span>バトル</span></h1>
     <div style="display:flex;gap:8px;align-items:center;">
+      <button class="backBtn hidden" id="pauseBtn" title="一時停止">⏸</button>
       <button class="backBtn" id="profileBtn" title="プロフィール・称号・バッジ">👤</button>
       <button class="backBtn" id="settingsBtn" title="設定(入力スピードなど)">⚙️</button>
       <button class="backBtn" id="muteBtn" title="効果音 ON/OFF">🔊</button>
@@ -273,6 +276,11 @@
       <h2>🩺 診断バトル</h2>
       <p id="descDiagnostic">全12問のスコアアタックで自分の実力を診断。正解が続くと問題がだんだん難しくなり、間違えるとやさしく戻る。今ちょうどいいレベルを知りたいときにも使える。</p>
       <button id="openDiagnostic">はじめる</button>
+    </div>
+    <div class="modeCard review">
+      <h2>🔁 ミス問題</h2>
+      <p id="descReview">これまでに間違えた問題を、もう一度解いて復習できる。</p>
+      <button id="openReview">復習する</button>
     </div>
   </div>
 
@@ -334,6 +342,15 @@
     <div class="problem-zone" id="diagProblemZone"><div class="idle-msg">問題が出るまで少々お待ちください</div></div>
   </div>
 
+  <!-- REVIEW PRACTICE VIEW(ミス問題の復習) -->
+  <div id="reviewPracticeView" class="hidden">
+    <div class="diagStats">
+      <div><span class="label">ミス問題</span><span class="scoreVal" id="reviewProgress">1/1</span></div>
+    </div>
+    <div class="arena" id="reviewArena"><div class="log" id="reviewLog">まもなく開始...</div></div>
+    <div class="problem-zone" id="reviewProblemZone"><div class="idle-msg">問題が出るまで少々お待ちください</div></div>
+  </div>
+
   <div class="overlay" id="overlay">
     <h2 id="overlayTitle">WIN</h2>
     <div id="overlaySub" class="osub"></div>
@@ -348,9 +365,11 @@
     <div class="settingsSection">
       <div class="settingsLabel">入力スピード(自分に合わせて調整)</div>
       <div class="speedChoices" id="speedChoices">
+        <button class="speedChip" data-speed="veryslow">🐌 とてもゆっくり</button>
         <button class="speedChip" data-speed="slow">🐢 ゆっくり</button>
         <button class="speedChip" data-speed="normal">🚶 ふつう</button>
         <button class="speedChip" data-speed="fast">🐇 はやい</button>
+        <button class="speedChip" data-speed="veryfast">🚀 とてもはやい</button>
       </div>
       <div class="settingsHint">タイピングの速さは人それぞれ。選んだスピードに合わせて、敵の攻撃間隔・サバイバルの制限時間・スピードボーナスの基準がまとめて調整されます。ゆっくり派の人は「ゆっくり」を選ぶと余裕を持って戦えます。</div>
     </div>
@@ -387,6 +406,9 @@
 const MAX_HP = 100;
 const el = id => document.getElementById(id);
 function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+/* 一時停止中は数字入力・かな入力・PASSボタンをすべて無効化する */
+let gamePaused = false;
 
 function shakeElement(elm){
   elm.animate([{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:220});
@@ -449,11 +471,13 @@ muteBtn.addEventListener('click', ()=>{
   muteBtn.textContent = Sfx.isMuted() ? '🔇' : '🔊';
 });
 
-/* ============ 設定: 入力スピード(タイピング速度の個人差を吸収) ============ */
+/* ============ 設定: 入力スピード(タイピング速度の個人差を吸収・5段階) ============ */
 const SPEED_PRESETS = {
-  slow:   { waitMul: 1.5,  timeMul: 1.5,  bonusSec: 3.5 },
-  normal: { waitMul: 1.0,  timeMul: 1.0,  bonusSec: 2.0 },
-  fast:   { waitMul: 0.7,  timeMul: 0.75, bonusSec: 1.3 }
+  veryslow: { waitMul: 1.8,  timeMul: 1.8,  bonusSec: 4.5 },
+  slow:     { waitMul: 1.4,  timeMul: 1.4,  bonusSec: 3.2 },
+  normal:   { waitMul: 1.0,  timeMul: 1.0,  bonusSec: 2.0 },
+  fast:     { waitMul: 0.75, timeMul: 0.8,  bonusSec: 1.4 },
+  veryfast: { waitMul: 0.55, timeMul: 0.6,  bonusSec: 1.0 }
 };
 let inputSpeed = localStorage.getItem('kb_inputSpeed') || 'normal';
 if(!SPEED_PRESETS[inputSpeed]) inputSpeed = 'normal';
@@ -517,6 +541,51 @@ function loadProfile(){
 }
 function saveProfile(){ localStorage.setItem('kb_profile', JSON.stringify(profile)); }
 let profile = loadProfile();
+
+/* ============ ミス問題バンク(教科ごとに間違えた問題をlocalStorageへ蓄積) ============
+   バトル中に不正解(時間切れ含む)になった問題を教科別にためておき、
+   「ミス問題」モードで再挑戦できる。正解すると卒業してバンクから消える。 */
+const MISTAKE_LIMIT = 100;
+function loadMistakes(){
+  try{
+    const saved = JSON.parse(localStorage.getItem('kb_mistakes'));
+    if(saved && typeof saved==='object') return saved;
+  }catch(e){}
+  return {};
+}
+function saveMistakes(){ localStorage.setItem('kb_mistakes', JSON.stringify(mistakeBank)); }
+let mistakeBank = loadMistakes();
+function mistakeKeyOf(kind, q){ return isReadingKind(kind) ? q.word : q.text; }
+function recordMistake(kind, q){
+  if(!mistakeBank[kind]) mistakeBank[kind] = [];
+  const list = mistakeBank[kind];
+  const key = mistakeKeyOf(kind, q);
+  const idx = list.findIndex(m => mistakeKeyOf(kind, m) === key);
+  if(idx>=0) list.splice(idx, 1);
+  list.unshift(q);
+  if(list.length > MISTAKE_LIMIT) list.length = MISTAKE_LIMIT;
+  saveMistakes();
+  updateMistakeCountUI();
+}
+function clearMistake(kind, q){
+  if(!mistakeBank[kind]) return;
+  const key = mistakeKeyOf(kind, q);
+  mistakeBank[kind] = mistakeBank[kind].filter(m => mistakeKeyOf(kind, m) !== key);
+  saveMistakes();
+  updateMistakeCountUI();
+}
+function mistakeCount(kind){ return (mistakeBank[kind]||[]).length; }
+function updateMistakeCountUI(){
+  const n = mistakeCount(currentKind);
+  const p = el('descReview');
+  if(p){
+    p.textContent = n>0
+      ? `これまでに間違えた問題を、もう一度解いて復習できる。現在 ${n}問たまっている。`
+      : 'これまでに間違えた問題を、もう一度解いて復習できる。今はまだミス問題がありません。バトルで間違えると、ここに追加されていく。';
+  }
+  const btn = el('openReview');
+  if(btn) btn.disabled = (n===0);
+}
 
 function renderProfilePanel(){
   el('profileNameInput').value = profile.name;
@@ -634,6 +703,7 @@ function buildNumpad(padEl, displayEl, onSubmit, submitLabel, passState, onPass)
     b.className = 'numkey' + (k==='ok' ? ' numkey-ok' : (k==='back' ? ' numkey-back':''));
     b.textContent = k==='back' ? '⌫' : (k==='ok' ? submitLabel : k);
     b.addEventListener('click', ()=>{
+      if(gamePaused) return;
       Sfx.tap();
       if(k==='back'){ val = val.slice(0,-1); render(); }
       else if(k==='ok'){ submitNow(); }
@@ -651,6 +721,7 @@ function buildNumpad(padEl, displayEl, onSubmit, submitLabel, passState, onPass)
     updatePassBtn();
     passTick = setInterval(updatePassBtn, 200);
     passBtn.addEventListener('click', ()=>{
+      if(gamePaused) return;
       if(Date.now() < (passState.passReadyAt||0)) return;
       passState.passReadyAt = Date.now() + PASS_COOLDOWN;
       cleanup();
@@ -663,8 +734,9 @@ function buildNumpad(padEl, displayEl, onSubmit, submitLabel, passState, onPass)
     else { passBtn.disabled=false; passBtn.textContent = 'PASS'; }
   }
 
-  function submitNow(){ cleanup(); onSubmit(val.length ? parseInt(val,10) : null); }
+  function submitNow(){ if(gamePaused) return; cleanup(); onSubmit(val.length ? parseInt(val,10) : null); }
   function keyHandler(e){
+    if(gamePaused) return;
     if(e.key>='0' && e.key<='9'){ if(val.length<6){ val+=e.key; render(); } }
     else if(e.key==='Backspace'){ val = val.slice(0,-1); render(); }
     else if(e.key==='Enter'){ submitNow(); }
@@ -691,6 +763,7 @@ function setupKanjiAnswer(inputEl, okBtn, passBtn, onSubmit, onPass, passState){
   inputEl.focus();
 
   function submitNow(){
+    if(gamePaused) return;
     const v = inputEl.value.trim();
     cleanup();
     onSubmit(v.length ? v : null);
@@ -707,6 +780,7 @@ function setupKanjiAnswer(inputEl, okBtn, passBtn, onSubmit, onPass, passState){
   updatePassBtn();
   const passTick = setInterval(updatePassBtn, 200);
   passBtn.addEventListener('click', ()=>{
+    if(gamePaused) return;
     if(Date.now() < (passState.passReadyAt||0)) return;
     passState.passReadyAt = Date.now() + PASS_COOLDOWN;
     cleanup();
@@ -868,6 +942,7 @@ function setKind(kind){
   el('descDiagnostic').textContent = d.diagnostic;
   const s = SUBJECTS.find(x=>x.id===kind);
   el('subjectHeader').textContent = s ? `${s.icon} ${s.label}` : '';
+  updateMistakeCountUI();
 }
 renderSubjectGrid();
 setKind('calc');
@@ -1016,24 +1091,30 @@ const levelSelectStage = el('levelSelectStage');
 const speedView = el('speedView');
 const survivalView = el('survivalView');
 const diagnosticView = el('diagnosticView');
+const reviewPracticeView = el('reviewPracticeView');
 const backBtn = el('backBtn');
+const pauseBtn = el('pauseBtn');
 const overlayEl = el('overlay');
+const PAUSABLE_SCREENS = [speedView, survivalView, diagnosticView, reviewPracticeView];
 
 let stageUnlocked = 1;
 let navHistory = [];
 
 function hideAllScreens(){
-  [home, modeSelect, levelSelectSpeed, levelSelectSurvival, levelSelectStage, speedView, survivalView, diagnosticView]
+  [home, modeSelect, levelSelectSpeed, levelSelectSurvival, levelSelectStage, speedView, survivalView, diagnosticView, reviewPracticeView]
     .forEach(v=>v.classList.add('hidden'));
 }
 function showScreen(elm, pushHistory){
   hideAllScreens();
   elm.classList.remove('hidden');
   backBtn.classList.toggle('hidden', elm===home);
+  pauseBtn.classList.toggle('hidden', !PAUSABLE_SCREENS.includes(elm));
+  gamePaused = false;
   overlayEl.classList.remove('show');
   stopSpeedMode();
   stopSurvivalMode();
   stopDiagnostic();
+  stopReviewPractice();
   if(pushHistory) navHistory.push(elm);
 }
 function goToHome(){ navHistory = []; showScreen(home, false); }
@@ -1045,6 +1126,48 @@ function goBack(){
 }
 backBtn.addEventListener('click', goBack);
 el('toMenuBtn').addEventListener('click', goToMenu);
+
+/* ============ 一時停止 ============
+   進行中のモード(sp/sv/dx/rp)ごとにタイマーを止め、一時停止パネルを表示する。
+   「つづける」で元のタイマーを正確な残り時間から再開、「ホームに戻る」で通常の
+   画面遷移(showScreenがstopXxx系を呼ぶ)によって対戦を終了する。 */
+function pauseCurrentGame(){
+  let resumeFn = null;
+  if(sp && !sp.over){
+    if(sp.enemyTimer){
+      clearTimeout(sp.enemyTimer);
+      sp.enemyTimer = null;
+      sp.enemyWaitRemaining = Math.max(200, (sp.enemyAttackAt||Date.now()) - Date.now());
+    }
+    resumeFn = ()=>{ scheduleEnemyAttack(sp.enemyWaitRemaining); };
+  } else if(sv && !sv.over){
+    if(sv.tickId){ clearInterval(sv.tickId); sv.tickId = null; }
+    resumeFn = ()=>{ if(sv.resumeTick) sv.resumeTick(); };
+  } else if(dx && !dx.over){
+    resumeFn = ()=>{};
+  } else if(rp && !rp.over){
+    resumeFn = ()=>{};
+  } else {
+    return;
+  }
+  gamePaused = true;
+  el('overlayTitle').textContent = '⏸ 一時停止中';
+  el('overlayTitle').style.color = 'var(--gold)';
+  el('overlaySub').textContent = '';
+  el('overlayBtnRow').innerHTML = `<button id="resumeBtn">▶ つづける</button><button class="secondary" id="pauseHomeBtn">🏠 ホームに戻る</button>`;
+  el('resumeBtn').addEventListener('click', ()=>{
+    gamePaused = false;
+    overlayEl.classList.remove('show');
+    resumeFn();
+  });
+  el('pauseHomeBtn').addEventListener('click', ()=>{
+    gamePaused = false;
+    overlayEl.classList.remove('show');
+    goToHome();
+  });
+  overlayEl.classList.add('show');
+}
+pauseBtn.addEventListener('click', pauseCurrentGame);
 
 function buildLevelGrid(container, opts){
   container.innerHTML = '';
@@ -1094,6 +1217,15 @@ el('openStageLv').addEventListener('click', openStageSelect);
 el('openDiagnostic').addEventListener('click', ()=>{
   showScreen(diagnosticView, true);
   startDiagnostic(currentKind);
+});
+
+el('openReview').addEventListener('click', ()=>{
+  if(mistakeCount(currentKind)===0){
+    showToast('ミス問題はまだありません。バトルで間違えると、ここに追加されていく。');
+    return;
+  }
+  showScreen(reviewPracticeView, true);
+  startReviewPractice(currentKind);
 });
 
 /* ============ SPEED / STAGE BATTLE ============ */
@@ -1185,6 +1317,7 @@ function nextSpeedProblem(){
     } else {
       sp.streak = 0;
       Sfx.wrong();
+      recordMistake(sp.kind, problem);
       shakeElement(el('speedProblemZone'));
       el('speedLog').innerHTML = `<b>ミス...</b> 正解は ${answer}`;
       showBreakExplanation(el('speedProblemZone'), problem, sp.kind, 'ミス... 正解をチェック!', 'ng', nextSpeedProblem, sp);
@@ -1205,9 +1338,11 @@ function nextSpeedProblem(){
   }
 }
 
-function scheduleEnemyAttack(){
+/* waitOverride を渡すと、そのミリ秒を待ち時間として使う(一時停止からの再開時に残り時間を引き継ぐため) */
+function scheduleEnemyAttack(waitOverride){
   if(!sp || sp.over) return;
-  const wait = randInt(sp.params.enemyWaitMin, sp.params.enemyWaitMax);
+  const wait = waitOverride!=null ? waitOverride : randInt(sp.params.enemyWaitMin, sp.params.enemyWaitMax);
+  sp.enemyAttackAt = Date.now() + wait;
   sp.enemyTimer = setTimeout(()=>{
     if(!sp || sp.over) return;
     const success = Math.random() < sp.params.enemySuccessRate;
@@ -1320,7 +1455,7 @@ function nextSurvProblem(){
   sv.lastQuestionKey = isReadingKind(sv.kind) ? problem.word : problem.text;
   const answer = isReadingKind(sv.kind) ? problem.reading : problem.result;
   const TIME_TOTAL = sv.params.timeTotal;
-  let timeLeft = TIME_TOTAL;
+  sv.timeLeft = TIME_TOTAL;
 
   if(isReadingKind(sv.kind)){
     el('survProblemZone').innerHTML = `
@@ -1343,13 +1478,15 @@ function nextSurvProblem(){
   }
 
   const timerFill = el('svTimerFill');
-  sv.tickId = setInterval(()=>{
-    timeLeft -= 0.1;
-    const pct = Math.max(0, timeLeft/TIME_TOTAL*100);
+  function tick(){
+    sv.timeLeft -= 0.1;
+    const pct = Math.max(0, sv.timeLeft/TIME_TOTAL*100);
     timerFill.style.width = pct+'%';
     if(pct < 30) timerFill.classList.add('danger');
-    if(timeLeft<=0){ finish(null); }
-  },100);
+    if(sv.timeLeft<=0){ finish(null); }
+  }
+  sv.tickId = setInterval(tick, 100);
+  sv.resumeTick = ()=>{ sv.tickId = setInterval(tick, 100); };
 
   function finish(val){
     clearInterval(sv.tickId);
@@ -1367,6 +1504,7 @@ function nextSurvProblem(){
     } else {
       sv.miss++;
       Sfx.wrong();
+      recordMistake(sv.kind, problem);
       shakeElement(el('survProblemZone'));
       el('survLog').innerHTML = val===null ? `<b>時間切れ...</b> 正解は ${answer}` : `<b>不正解...</b> 正解は ${answer}`;
       survRender();
@@ -1493,6 +1631,7 @@ function nextDiagnosticProblem(){
       nextDiagnosticProblem();
     } else {
       Sfx.wrong();
+      recordMistake(dx.kind, problem);
       dx.adaptiveLevel = Math.max(1, dx.adaptiveLevel - 0.7);
       shakeElement(el('diagProblemZone'));
       el('diagLog').innerHTML = `<b>ミス...</b> 正解は ${answer}`;
@@ -1535,6 +1674,124 @@ function endDiagnostic(silent){
     showScreen(diagnosticView, true);
     startDiagnostic(kind);
   });
+  el('toMenuBtn').addEventListener('click', goToMenu);
+  overlayEl.classList.add('show');
+  addReviewButton();
+}
+
+/* ============ ミス問題(過去に間違えた問題の復習) ============
+   開始時点のミスバンクをスナップショットして順番に出題する。正解すると
+   バンクから卒業(clearMistake)、間違えるとバンクに残る(recordMistakeで更新)。 */
+let rp = null;
+
+function startReviewPractice(kind){
+  const queue = (mistakeBank[kind] || []).slice();
+  if(queue.length===0){
+    showToast('ミス問題はまだありません。バトルで間違えると、ここに追加されていく。');
+    return;
+  }
+  rp = { over:false, kind, queue, index:0, cleared:0, passReadyAt:0, history:[], breakTimeout:null, breakTick:null };
+  el('reviewProgress').textContent = `1/${queue.length}`;
+  el('reviewLog').innerHTML = '⚔ まもなく開始...';
+  runReadyGo(el('reviewProblemZone'), rp, ()=>{
+    if(!rp || rp.over) return;
+    el('reviewLog').innerHTML = 'ミスした問題をもう一度解いてみよう！';
+    nextReviewProblem();
+  });
+}
+function stopReviewPractice(){
+  if(rp){
+    if(rp.breakTimeout) clearTimeout(rp.breakTimeout);
+    if(rp.breakTick) clearInterval(rp.breakTick);
+  }
+  rp = null;
+}
+
+function nextReviewProblem(){
+  if(!rp || rp.over) return;
+  if(rp.index >= rp.queue.length){ endReviewPractice(); return; }
+  el('reviewProgress').textContent = `${rp.index+1}/${rp.queue.length}`;
+  const problem = rp.queue[rp.index];
+  const answer = isReadingKind(rp.kind) ? problem.reading : problem.result;
+
+  if(isReadingKind(rp.kind)){
+    el('reviewProblemZone').innerHTML = `
+      <div class="kanjiSentence"><span class="sentPlain">${problem.before}</span><span class="sentTarget">${problem.word}</span><span class="sentPlain">${problem.after}</span></div>
+      <div class="kanjiPrompt">色文字の部分をひらがなで入力</div>
+      <div class="kanjiInputRow">
+        <input type="text" id="rpKanjiInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <button id="rpKanjiOk">決定</button>
+      </div>
+      <button class="passBtnStandalone" id="rpKanjiPass">PASS</button>
+    `;
+  } else {
+    el('reviewProblemZone').innerHTML = `
+      <div class="equation">${problem.text}<span class="op">=</span>?</div>
+      <div class="answerDisplay" id="rpAnswerDisplay">0</div>
+      <div class="numpad" id="rpNumpad"></div>
+    `;
+  }
+
+  function submit(val){
+    if(!rp || rp.over) return;
+    const correct = (val !== null && val === answer);
+    const shown = isReadingKind(rp.kind) ? problem.word : problem.text;
+    rp.history.push({kind:rp.kind, q:problem, res: correct?'correct':'wrong'});
+    showAnswerEffect(correct);
+    rp.index++;
+    if(correct){
+      Sfx.correct();
+      clearMistake(rp.kind, problem);
+      rp.cleared++;
+      el('reviewLog').innerHTML = `<b>正解!</b> ${shown}=${answer} → ミス問題から卒業！`;
+      nextReviewProblem();
+    } else {
+      Sfx.wrong();
+      recordMistake(rp.kind, problem);
+      shakeElement(el('reviewProblemZone'));
+      el('reviewLog').innerHTML = `<b>まだミス...</b> 正解は ${answer}`;
+      showBreakExplanation(el('reviewProblemZone'), problem, rp.kind, 'まだミス... 正解をチェック!', 'ng', nextReviewProblem, rp);
+    }
+  }
+  function pass(){
+    if(!rp || rp.over) return;
+    rp.history.push({kind:rp.kind, q:problem, res:'pass'});
+    rp.index++;
+    Sfx.pass();
+    el('reviewLog').innerHTML = `<span style="color:var(--sub)">パスした(正解: ${answer})</span>`;
+    showBreakExplanation(el('reviewProblemZone'), problem, rp.kind, 'パス → 正解をチェック', 'pass', nextReviewProblem, rp);
+  }
+
+  if(isReadingKind(rp.kind)){
+    setupKanjiAnswer(el('rpKanjiInput'), el('rpKanjiOk'), el('rpKanjiPass'), submit, pass, rp);
+  } else {
+    buildNumpad(el('rpNumpad'), el('rpAnswerDisplay'), submit, '決定', rp, pass);
+  }
+}
+
+function endReviewPractice(silent){
+  rp.over = true;
+  if(rp.breakTimeout) clearTimeout(rp.breakTimeout);
+  if(rp.breakTick) clearInterval(rp.breakTick);
+  const cleared = rp.cleared, total = rp.queue.length, kind = rp.kind;
+  const remaining = mistakeCount(kind);
+  if(!silent) Sfx.win();
+  lastEnd = ()=>endReviewPractice(true);
+  lastHistory = rp.history || [];
+
+  el('overlayTitle').textContent = '復習けっか';
+  el('overlayTitle').style.color = 'var(--danger)';
+  el('overlaySub').textContent = `${total}問中 ${cleared}問を克服！残りのミス問題: ${remaining}問`;
+  el('overlayBtnRow').innerHTML = remaining>0
+    ? `<button id="retryBtn">続けて復習</button><button class="secondary" id="toMenuBtn">モード選択へ</button>`
+    : `<button class="secondary" id="toMenuBtn">モード選択へ</button>`;
+  if(remaining>0){
+    el('retryBtn').addEventListener('click', ()=>{
+      overlayEl.classList.remove('show');
+      showScreen(reviewPracticeView, true);
+      startReviewPractice(kind);
+    });
+  }
   el('toMenuBtn').addEventListener('click', goToMenu);
   overlayEl.classList.add('show');
   addReviewButton();
