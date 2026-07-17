@@ -36,19 +36,30 @@
   .backBtn{font-family:Arial,sans-serif;font-size:11px;letter-spacing:.08em;color:var(--sub);background:none;border:1px solid var(--line);border-radius:5px;padding:5px 10px;cursor:pointer;}
   .backBtn:hover{color:var(--text);}
 
-  /* ---------- KIND TOGGLE ---------- */
-  .kindToggle{display:flex;gap:8px;padding:16px 20px 0;}
-  .kindBtn{flex:1;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--sub);font-family:Arial,sans-serif;font-weight:700;font-size:13px;cursor:pointer;}
-  .kindBtn.active{background:var(--gold);color:#1a1300;border-color:var(--gold);}
+  /* ---------- HOME ---------- */
+  #home{padding:16px 20px 26px;}
+  .homeIntro h2{margin:0 0 10px;font-family:Arial,sans-serif;font-size:12.5px;color:var(--sub);letter-spacing:.1em;}
+  .subjectGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  .subjectCard{border:1px solid var(--line);border-radius:10px;padding:16px 14px;background:var(--panel);display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;font-family:Arial,sans-serif;color:var(--text);position:relative;}
+  .subjectCard .sIcon{font-size:26px;}
+  .subjectCard .sLabel{font-size:13px;font-weight:700;}
+  .subjectCard.locked{opacity:.55;}
+  .subjectCard:not(.locked):hover{border-color:var(--gold);}
+  .subjectCard .lockedTag{margin-left:0;}
+  .homeUtilRow{display:flex;gap:10px;flex-wrap:wrap;}
+  .homeUtilBtn{flex:1;min-width:96px;border:1px solid var(--line);border-radius:10px;padding:14px 10px;background:var(--panel);color:var(--text);display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;font-family:Arial,sans-serif;font-size:11.5px;font-weight:700;}
+  .homeUtilBtn .uIcon{font-size:22px;}
+  .homeUtilBtn.lockedBtn{opacity:.6;}
 
   /* ---------- MODE SELECT ---------- */
   #modeSelect{padding:16px 20px 26px;}
+  .subjectHeader{font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:var(--gold);letter-spacing:.06em;padding:0 0 14px;}
   .modeCard{border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:12px;background:var(--panel);display:flex;flex-direction:column;gap:8px;}
   .modeCard h2{margin:0;font-family:Arial,sans-serif;font-size:15px;letter-spacing:.06em;}
   .modeCard.speed h2{color:var(--you);}
   .modeCard.survival h2{color:var(--enemy);}
   .modeCard.stage h2{color:var(--gold);}
-  .modeCard.adaptive h2{color:var(--ok);}
+  .modeCard.diagnostic h2{color:var(--ok);}
   .modeCard p{margin:0;font-size:12.5px;color:var(--sub);line-height:1.6;font-family:Arial,sans-serif;}
   .modeCard button{align-self:flex-start;font-family:Arial,sans-serif;font-weight:700;font-size:12px;letter-spacing:.06em;padding:8px 18px;border-radius:6px;border:1px solid var(--line);background:var(--gold);color:#1a1300;cursor:pointer;margin-top:4px;}
 
@@ -137,6 +148,10 @@
 
   .stageBadge{font-family:Arial,sans-serif;font-size:11px;letter-spacing:.1em;color:var(--gold);text-align:center;padding:6px 0 0;background:var(--panel);}
 
+  /* ---------- 診断バトル(スコアアタック) ---------- */
+  .diagStats{display:flex;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--panel);font-family:Arial,sans-serif;font-size:13px;}
+  .diagStats .label{color:var(--sub);font-size:11px;letter-spacing:.1em;display:block;margin-bottom:3px;}
+
   .overlay{position:absolute;inset:0;background:rgba(6,7,10,.92);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;text-align:center;padding:20px;}
   .overlay.show{display:flex;}
   .overlay h2{font-family:Arial,sans-serif;font-size:30px;letter-spacing:.1em;margin:0;}
@@ -155,10 +170,6 @@
 
   /* ---------- 準備中(オンライン対戦・新教科)のロック表現 ---------- */
   .lockedTag{font-size:9px;font-weight:700;color:var(--sub);border:1px solid var(--line);border-radius:10px;padding:2px 7px;margin-left:6px;vertical-align:middle;letter-spacing:0;}
-  .kindBtn.locked{opacity:.55;cursor:pointer;}
-  .modeCard.online h2{color:var(--sub);}
-  .modeCard.online{opacity:.85;}
-  button.lockedBtn{background:none;color:var(--sub);border-style:dashed;}
 
   /* ---------- TOAST ---------- */
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(16px);background:#1a1e28;border:1px solid var(--line);color:var(--text);font-family:Arial,sans-serif;font-size:12.5px;padding:10px 18px;border-radius:8px;box-shadow:0 10px 30px -10px rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .25s ease, transform .25s ease;z-index:50;max-width:88vw;text-align:center;}
@@ -200,6 +211,18 @@
   .revMeaning{color:var(--sub);font-size:12px;margin-top:2px;line-height:1.55;}
   .numkey:active,.overlay button:active,.modeCard button:active,.kanjiInputRow button:active,.passBtnStandalone:active{transform:scale(.94);}
 
+  /* ---------- 正解・不正解エフェクト ---------- */
+  .answerFxLayer{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:40;}
+  .fxIcon{font-size:88px;font-weight:900;opacity:0;}
+  .fxIcon.correct{color:var(--ok);text-shadow:0 0 14px rgba(125,255,176,.55),0 0 34px rgba(125,255,176,.4);}
+  .fxIcon.wrong{color:var(--danger);text-shadow:0 0 14px rgba(255,77,77,.55),0 0 34px rgba(255,77,77,.4);}
+  @keyframes fxPop{
+    0%{opacity:0;transform:scale(.3) rotate(-8deg);}
+    28%{opacity:1;transform:scale(1.2) rotate(3deg);}
+    55%{opacity:1;transform:scale(1) rotate(0deg);}
+    100%{opacity:0;transform:scale(1.3) rotate(0deg);}
+  }
+
   .hidden{display:none !important;}
 </style>
 </head>
@@ -216,9 +239,21 @@
     </div>
   </header>
 
-  <!-- MODE SELECT -->
-  <div id="modeSelect">
-    <div class="kindToggle" id="kindToggle"></div>
+  <!-- HOME -->
+  <div id="home">
+    <div class="homeIntro"><h2>📚 教科をえらぶ</h2></div>
+    <div class="subjectGrid" id="subjectGrid"></div>
+    <div class="homeIntro" style="margin-top:20px;"><h2>⚙ その他</h2></div>
+    <div class="homeUtilRow">
+      <button class="homeUtilBtn" id="homeSettingsBtn"><span class="uIcon">⚙️</span>設定</button>
+      <button class="homeUtilBtn" id="homeProfileBtn"><span class="uIcon">👤</span>プロフィール</button>
+      <button class="homeUtilBtn lockedBtn" id="homeOnlineBtn"><span class="uIcon">🌐</span>オンライン対戦<span class="lockedTag">準備中</span></button>
+    </div>
+  </div>
+
+  <!-- MODE SELECT (教科ごとのモード一覧) -->
+  <div id="modeSelect" class="hidden">
+    <div class="subjectHeader" id="subjectHeader"></div>
     <div class="modeCard speed">
       <h2>⚡ スピードバトル</h2>
       <p id="descSpeed">問題が次々ランダムに出てくる。解けたら即攻撃、相手も一定間隔で攻撃してくる。先にHPを0にした方が勝ち。</p>
@@ -234,15 +269,10 @@
       <p id="descStage">Lv.1から順に敵を倒してステージクリア。クリアすると次のステージが解放される。Lv.10撃破を目指そう。</p>
       <button id="openStageLv">ステージを選ぶ</button>
     </div>
-    <div class="modeCard adaptive">
-      <h2>🎯 ちょうどいいバトル</h2>
-      <p id="descAdaptive">レベル選択なしですぐ挑戦。正解が続くと問題がだんだん難しくなり、間違えるとやさしく戻る。自分にちょうどいい難易度が自然に見つかるモード。</p>
-      <button id="openAdaptive">たたかう</button>
-    </div>
-    <div class="modeCard online">
-      <h2>🌐 オンライン対戦 <span class="lockedTag">準備中</span></h2>
-      <p>CPUではなく他のプレイヤーとリアルタイムで対戦できるモード。プロフィール・称号・バッジと合わせて準備を進めています。</p>
-      <button id="openOnline" class="lockedBtn">近日公開</button>
+    <div class="modeCard diagnostic">
+      <h2>🩺 診断バトル</h2>
+      <p id="descDiagnostic">全12問のスコアアタックで自分の実力を診断。正解が続くと問題がだんだん難しくなり、間違えるとやさしく戻る。今ちょうどいいレベルを知りたいときにも使える。</p>
+      <button id="openDiagnostic">はじめる</button>
     </div>
   </div>
 
@@ -293,6 +323,17 @@
     <div class="problem-zone" id="survProblemZone"><div class="idle-msg">問題が出るまで少々お待ちください</div></div>
   </div>
 
+  <!-- DIAGNOSTIC VIEW(診断バトル: スコアアタック) -->
+  <div id="diagnosticView" class="hidden">
+    <div class="diagStats">
+      <div><span class="label">SCORE</span><span class="scoreVal" id="diagScore">0</span></div>
+      <div><span class="label">問題</span><span class="scoreVal" id="diagProgress">1/12</span></div>
+      <div><span class="label">目安レベル</span><span class="scoreVal" id="diagLevel">Lv.1</span></div>
+    </div>
+    <div class="arena" id="diagArena"><div class="log" id="diagLog">まもなく開始...</div></div>
+    <div class="problem-zone" id="diagProblemZone"><div class="idle-msg">問題が出るまで少々お待ちください</div></div>
+  </div>
+
   <div class="overlay" id="overlay">
     <h2 id="overlayTitle">WIN</h2>
     <div id="overlaySub" class="osub"></div>
@@ -336,10 +377,12 @@
   </div>
 
   <div class="toast" id="toast"></div>
+  <div class="answerFxLayer" id="answerFxLayer"></div>
 
 </div>
 
 <script src="kanji-data.js"></script>
+<script src="history-data.js"></script>
 <script>
 const MAX_HP = 100;
 const el = id => document.getElementById(id);
@@ -347,6 +390,19 @@ function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
 
 function shakeElement(elm){
   elm.animate([{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:220});
+}
+
+/* ============ 正解・不正解エフェクト ============
+   問題ゾーンは次の問題でinnerHTMLごと差し替わってしまうため、演出はcabinet全体に
+   かぶさる専用レイヤー(#answerFxLayer)に出す。 */
+function showAnswerEffect(correct){
+  const layer = el('answerFxLayer');
+  const icon = document.createElement('span');
+  icon.className = 'fxIcon ' + (correct ? 'correct' : 'wrong');
+  icon.textContent = correct ? '◎' : '✕';
+  icon.style.animation = 'fxPop .6s ease forwards';
+  layer.appendChild(icon);
+  setTimeout(()=> icon.remove(), 650);
 }
 
 /* ============ 効果音(Web Audio APIで合成、音声ファイル不要) ============ */
@@ -379,7 +435,7 @@ const Sfx = (()=>{
     wrong(){ beep(220,0.22,'sawtooth',0.12); beep(150,0.3,'sawtooth',0.12,0.12); },
     pass(){ beep(420,0.1,'sine',0.09); beep(300,0.14,'sine',0.09,0.1); },
     fire(){ beep(400,0.25,'sawtooth',0.06,0,1400); },
-    hit(){ beep(160,0.18,'square',0.16,0,70); },
+    hit(){ beep(130,0.24,'sawtooth',0.22,0,32); beep(55,0.3,'sine',0.24,0.015,28); beep(2400,0.04,'square',0.08,0); },
     clash(){ beep(1250,0.12,'square',0.1); beep(950,0.2,'square',0.1,0.05,280); },
     win(){ [523,659,784,1047].forEach((f,i)=>beep(f,0.18,'square',0.12,i*0.13)); },
     lose(){ [392,330,262,196].forEach((f,i)=>beep(f,0.22,'sawtooth',0.1,i*0.17)); },
@@ -416,10 +472,12 @@ document.querySelectorAll('.speedChip').forEach(b=>{
     refreshSpeedChips();
   });
 });
-el('settingsBtn').addEventListener('click', ()=>{
+function openSettingsPanel(){
   refreshSpeedChips();
   settingsPanel.classList.add('show');
-});
+}
+el('settingsBtn').addEventListener('click', openSettingsPanel);
+el('homeSettingsBtn').addEventListener('click', openSettingsPanel);
 el('settingsCloseBtn').addEventListener('click', ()=> settingsPanel.classList.remove('show'));
 
 /* ============ トースト(準備中メッセージなどの短い通知) ============ */
@@ -468,10 +526,12 @@ function renderProfilePanel(){
     return `<div class="badgeSlot" style="${owned?'opacity:1':''}"><span class="bIcon" style="${owned?'filter:none':''}">${owned?b.icon:'🔒'}</span><span class="bName">${b.name}</span></div>`;
   }).join('');
 }
-el('profileBtn').addEventListener('click', ()=>{
+function openProfilePanel(){
   renderProfilePanel();
   el('profilePanel').classList.add('show');
-});
+}
+el('profileBtn').addEventListener('click', openProfilePanel);
+el('homeProfileBtn').addEventListener('click', openProfilePanel);
 el('profileCloseBtn').addEventListener('click', ()=>{
   profile.name = el('profileNameInput').value.trim() || '名無しさん';
   saveProfile();
@@ -482,7 +542,7 @@ el('profileCloseBtn').addEventListener('click', ()=>{
    静的なGitHub Pagesだけではリアルタイム通信ができないため、実装時は
    別途リレー用のサーバー(WebSocket等)が必要になる。攻撃処理を
    「自分の入力」と「相手の入力」に分離した設計は既にあるので拡張しやすい。 */
-el('openOnline').addEventListener('click', ()=>{
+el('homeOnlineBtn').addEventListener('click', ()=>{
   showToast('🌐 オンライン対戦は準備中です。お楽しみに!');
 });
 
@@ -500,7 +560,7 @@ function runReadyGo(zoneEl, state, cb){
 }
 function showBreakExplanation(zoneEl, problem, kind, head, headClass, cb, state){
   let inner;
-  if(kind==='kanji'){
+  if(isReadingKind(kind)){
     inner = `<div class="exWord">${problem.word}</div>
       <div class="exReading">読み方: ${problem.reading}</div>
       ${problem.meaning ? `<div class="exMeaning">意味: ${problem.meaning}</div>` : ''}`;
@@ -538,7 +598,7 @@ function reviewItemHTML(item){
   const mark = item.res==='correct' ? '<span class="revMark ok">○</span>'
     : item.res==='pass' ? '<span class="revMark pass">➜</span>'
     : '<span class="revMark ng">×</span>';
-  if(item.kind==='kanji'){
+  if(isReadingKind(item.kind)){
     const q = item.q;
     return `<div class="revItem">${mark}<div>
       <div class="revMain">${q.word}(${q.reading})</div>
@@ -747,62 +807,81 @@ function applyShotDamage(shot){
   checkSpeedEnd();
 }
 
-/* ============ 教科トグル(けいさん / かんじ / 今後追加予定の教科) ============
+/* ============ 教科(けいさん / かんじ / れきし / 今後追加予定の教科) ============
    ready:false の教科はまだ問題データがないため、選択すると準備中トーストを出すだけの
    プレースホルダー。中身(問題データ)は今後あらためて実装する。 */
 const SUBJECTS = [
   { id:'calc',    icon:'🔢', label:'けいさん',       ready:true },
   { id:'kanji',   icon:'🈶', label:'かんじの読み方',  ready:true },
-  { id:'history', icon:'📜', label:'れきし',         ready:false },
+  { id:'history', icon:'📜', label:'れきし',         ready:true },
   { id:'chem',    icon:'🧪', label:'かがく',         ready:false },
   { id:'english', icon:'🔤', label:'えいご',         ready:false },
   { id:'music',   icon:'🎵', label:'おんがく',       ready:false },
   { id:'art',     icon:'🎨', label:'びじゅつ',       ready:false }
 ];
 let currentKind = 'calc';
-function renderSubjectToggle(){
-  const wrap = el('kindToggle');
+function renderSubjectGrid(){
+  const wrap = el('subjectGrid');
   wrap.innerHTML = SUBJECTS.map(s=>`
-    <button class="kindBtn ${s.ready ? '' : 'locked'} ${currentKind===s.id ? 'active' : ''}" data-subject="${s.id}">
-      ${s.icon} ${s.label}${s.ready ? '' : '<span class="lockedTag">準備中</span>'}
+    <button class="subjectCard ${s.ready ? '' : 'locked'}" data-subject="${s.id}">
+      <span class="sIcon">${s.icon}</span><span class="sLabel">${s.label}</span>
+      ${s.ready ? '' : '<span class="lockedTag">準備中</span>'}
     </button>
   `).join('');
-  wrap.querySelectorAll('.kindBtn').forEach(b=>{
+  wrap.querySelectorAll('.subjectCard').forEach(b=>{
     b.addEventListener('click', ()=>{
       const s = SUBJECTS.find(x=>x.id===b.dataset.subject);
       if(!s.ready){ showToast(`「${s.label}」モードは準備中です。お楽しみに!`); return; }
       setKind(s.id);
+      showScreen(modeSelect, true);
     });
   });
 }
+
+/* 教科ごとのモード説明文(ready な教科のみ実際に使われる) */
+const SUBJECT_DESCRIPTIONS = {
+  calc: {
+    speed: '計算問題が次々ランダムに出てくる。解けたら即攻撃、相手も一定間隔で攻撃してくる。先にHPを0にした方が勝ち。',
+    survival: '計算問題が制限時間内に出題され続ける。不正解・時間切れで1ミス、5ミスでゲームオーバー。',
+    stage: '計算問題でLv.1から順に敵を倒してステージクリア。クリアすると次のステージが解放される。',
+    diagnostic: '全12問のスコアアタックで自分の実力を診断。計算問題の正解が続くとだんだん難しくなり、間違えるとやさしく戻る。今ちょうどいいレベルを知りたいときにも使える。'
+  },
+  kanji: {
+    speed: '漢字の読み方問題が次々ランダムに出てくる。ひらがなで正しく答えて攻撃しよう。先にHPを0にした方が勝ち。',
+    survival: '漢字の読み方問題が制限時間内に出題され続ける。不正解・時間切れで1ミス、5ミスでゲームオーバー。',
+    stage: '漢字の読み方問題でLv.1から順に敵を倒してステージクリア。クリアすると次のステージが解放される。',
+    diagnostic: '全12問のスコアアタックで自分の実力を診断。漢字の読み方の正解が続くとだんだん難しくなり、間違えるとやさしく戻る。今ちょうどいいレベルを知りたいときにも使える。'
+  },
+  history: {
+    speed: '歴史の重要語句の読み方問題が次々ランダムに出てくる。ひらがなで正しく答えて攻撃しよう。先にHPを0にした方が勝ち。',
+    survival: '歴史の重要語句の読み方問題が制限時間内に出題され続ける。不正解・時間切れで1ミス、5ミスでゲームオーバー。',
+    stage: '歴史の重要語句の読み方問題でLv.1から順に敵を倒してステージクリア。クリアすると次のステージが解放される。',
+    diagnostic: '全12問のスコアアタックで自分の実力を診断。歴史の重要語句の正解が続くとだんだん難しくなり、間違えるとやさしく戻る。今ちょうどいいレベルを知りたいときにも使える。'
+  }
+};
 function setKind(kind){
   currentKind = kind;
-  document.querySelectorAll('#kindToggle .kindBtn').forEach(b=>{
-    b.classList.toggle('active', b.dataset.subject===kind);
-  });
-  if(kind==='calc'){
-    el('descSpeed').textContent = '計算問題が次々ランダムに出てくる。解けたら即攻撃、相手も一定間隔で攻撃してくる。先にHPを0にした方が勝ち。';
-    el('descSurvival').textContent = '計算問題が制限時間内に出題され続ける。不正解・時間切れで1ミス、5ミスでゲームオーバー。';
-    el('descStage').textContent = '計算問題でLv.1から順に敵を倒してステージクリア。クリアすると次のステージが解放される。';
-    el('descAdaptive').textContent = 'レベル選択なしですぐ挑戦。計算問題の正解が続くとだんだん難しくなり、間違えるとやさしく戻る。自分にちょうどいい難易度が自然に見つかるモード。';
-  } else {
-    el('descSpeed').textContent = '漢字の読み方問題が次々ランダムに出てくる。ひらがなで正しく答えて攻撃しよう。先にHPを0にした方が勝ち。';
-    el('descSurvival').textContent = '漢字の読み方問題が制限時間内に出題され続ける。不正解・時間切れで1ミス、5ミスでゲームオーバー。';
-    el('descStage').textContent = '漢字の読み方問題でLv.1から順に敵を倒してステージクリア。クリアすると次のステージが解放される。';
-    el('descAdaptive').textContent = 'レベル選択なしですぐ挑戦。漢字の読み方の正解が続くとだんだん難しくなり、間違えるとやさしく戻る。自分にちょうどいい難易度が自然に見つかるモード。';
-  }
+  const d = SUBJECT_DESCRIPTIONS[kind] || SUBJECT_DESCRIPTIONS.calc;
+  el('descSpeed').textContent = d.speed;
+  el('descSurvival').textContent = d.survival;
+  el('descStage').textContent = d.stage;
+  el('descDiagnostic').textContent = d.diagnostic;
+  const s = SUBJECTS.find(x=>x.id===kind);
+  el('subjectHeader').textContent = s ? `${s.icon} ${s.label}` : '';
 }
-renderSubjectToggle();
+renderSubjectGrid();
+setKind('calc');
 
-/* ============ 難易度パラメータ(1-10) ============ */
+/* ============ 難易度パラメータ(1-10) ============
+   計算バトル全体のペースをゆっくりめに調整(敵の攻撃間隔を長め・減衰もゆるやかに)。 */
 function battleLevelParams(level){
   const preset = currentSpeedPreset();
   return {
     enemyHpMax: Math.round(100 * (1 + (level-1)*0.15)),
     enemyDmgMin: 6 + Math.floor((level-1)*0.8),
     enemyDmgMax: 12 + Math.floor((level-1)*1.2),
-    enemyWaitMin: Math.round(Math.max(700, 2400 - (level-1)*150) * preset.waitMul),
-    enemyWaitMax: Math.round(Math.max(1200, 3200 - (level-1)*150) * preset.waitMul),
+    enemyWaitMin: Math.round(Math.max(900, 3000 - (level-1)*130) * preset.waitMul),
+    enemyWaitMax: Math.round(Math.max(1500, 4000 - (level-1)*130) * preset.waitMul),
     enemySuccessRate: Math.min(0.92, 0.55 + (level-1)*0.035)
   };
 }
@@ -821,7 +900,7 @@ function digitsForLevel(level){
   if(lv===9) return 4;
   return 5;
 }
-function genProblem(level){
+function genProblemOnce(level){
   const digits = digitsForLevel(level);
   const dMin = Math.pow(10, digits-1), dMax = Math.pow(10, digits)-1;
   const ops = ['+','-','x','/'];
@@ -848,15 +927,23 @@ function genProblem(level){
   }
   return {text, result};
 }
+/* excludeText を渡すと、直前と同じ式が出た場合は数回引き直す(連続出題防止)。 */
+function genProblem(level, excludeText){
+  for(let tries=0; tries<6; tries++){
+    const p = genProblemOnce(level);
+    if(p.text !== excludeText) return p;
+  }
+  return genProblemOnce(level);
+}
 
-/* ---- 計算問題(スピード系: スピードバトル/ステージ/ちょうどいいバトル用) ----
+/* ---- 計算問題(スピード系: スピードバトル/ステージ/診断バトル用) ----
    時間制限のあるモードは桁の伸びをゆるやかにする。加減算は少しずつ桁数が増え、
    乗除算は最後まで大きくなりすぎないよう桁を抑える(Lv9〜10で少しだけ3桁が混じる程度)。
    サバイバルは考える時間があるため従来の genProblem/digitsForLevel のまま。 */
 const FAST_ADD_DIGITS = [1,1,2,2,2,2,3,3,3,4];
 const FAST_MUL_DIGITS = [[1,1],[1,1],[2,1],[2,1],[2,1],[2,2],[2,2],[2,2],[3,1],[3,2]];
 const FAST_DIV_QMAX   = [9,9,12,12,15,15,20,20,30,40];
-function fastGenProblem(level){
+function fastGenProblemOnce(level){
   const lv = Math.max(1, Math.min(10, Math.round(level)));
   const digits = FAST_ADD_DIGITS[lv-1];
   const [aDigits, bDigits] = FAST_MUL_DIGITS[lv-1];
@@ -883,29 +970,52 @@ function fastGenProblem(level){
   }
   return {text, result};
 }
+function fastGenProblem(level, excludeText){
+  for(let tries=0; tries<6; tries++){
+    const p = fastGenProblemOnce(level);
+    if(p.text !== excludeText) return p;
+  }
+  return fastGenProblemOnce(level);
+}
 
-/* ---- 漢字の読み方: 短文の中の1単語だけ読む形式 ----
-   レベルと漢検の目安級: Lv1=10級〜8級 / Lv2=9級〜7級 …(1級刻みでスライド) Lv10=2級〜1級
-   [前の文, 対象の単語, 読み方, 後の文] */
+/* ---- 「読み方」系の問題(かんじ・れきし共通) ----
+   短文の中の1単語だけを読む形式。かんじは漢検の級を目安に、れきしは時代の
+   進み方を目安にレベルをスライドさせている。
+   KANJI_DATA / HISTORY_DATA は外部ファイル(kanji-data.js / history-data.js)で
+   定義。各エントリは [前の文, 対象の単語, 読み方, 後の文, 意味(省略可)] の形式 */
 const KANKEN_GRADES = ['10級','9級','8級','7級','6級','5級','4級','3級','準2級','2級','準1級','1級'];
 function kankenLabel(lv){ return KANKEN_GRADES[lv-1] + '〜' + KANKEN_GRADES[lv+1]; }
+const HISTORY_ERA = ['縄文〜奈良','平安','鎌倉・室町','安土桃山・江戸初期','江戸中期','幕末・明治','明治・大正','昭和戦前','戦後・現代','発展編'];
+function historyEraLabel(lv){ return HISTORY_ERA[lv-1]; }
 
-/* KANJI_DATA は kanji-data.js(外部ファイル)で定義。各エントリは
-   [前の文, 対象の単語, 読み方, 後の文, 意味(省略可)] の形式 */
-function genKanjiProblem(level){
+const READING_SUBJECTS = {
+  kanji:   { data: KANJI_DATA,   levelLabel: kankenLabel },
+  history: { data: HISTORY_DATA, levelLabel: historyEraLabel }
+};
+function isReadingKind(kind){ return !!READING_SUBJECTS[kind]; }
+/* excludeWord を渡すと、直前と同じ単語が出た場合は数回引き直す(連続出題防止)。 */
+function genReadingProblem(kind, level, excludeWord){
   const lv = Math.max(1, Math.min(10, Math.round(level)));
-  const list = KANJI_DATA[lv];
-  const pick = list[randInt(0, list.length-1)];
+  const list = READING_SUBJECTS[kind].data[lv];
+  let pick = list[randInt(0, list.length-1)];
+  if(list.length>1 && excludeWord){
+    for(let tries=0; tries<6 && pick[1]===excludeWord; tries++){
+      pick = list[randInt(0, list.length-1)];
+    }
+  }
   return {before:pick[0], word:pick[1], reading:pick[2], after:pick[3], meaning:pick[4]||''};
 }
 
-/* ============ NAV ============ */
+/* ============ NAV ============
+   階層: ホーム → (教科をえらぶ) → モード選択 → レベル選択 → バトル画面 */
+const home = el('home');
 const modeSelect = el('modeSelect');
 const levelSelectSpeed = el('levelSelectSpeed');
 const levelSelectSurvival = el('levelSelectSurvival');
 const levelSelectStage = el('levelSelectStage');
 const speedView = el('speedView');
 const survivalView = el('survivalView');
+const diagnosticView = el('diagnosticView');
 const backBtn = el('backBtn');
 const overlayEl = el('overlay');
 
@@ -913,23 +1023,25 @@ let stageUnlocked = 1;
 let navHistory = [];
 
 function hideAllScreens(){
-  [modeSelect, levelSelectSpeed, levelSelectSurvival, levelSelectStage, speedView, survivalView]
+  [home, modeSelect, levelSelectSpeed, levelSelectSurvival, levelSelectStage, speedView, survivalView, diagnosticView]
     .forEach(v=>v.classList.add('hidden'));
 }
 function showScreen(elm, pushHistory){
   hideAllScreens();
   elm.classList.remove('hidden');
-  backBtn.classList.toggle('hidden', elm===modeSelect);
+  backBtn.classList.toggle('hidden', elm===home);
   overlayEl.classList.remove('show');
   stopSpeedMode();
   stopSurvivalMode();
+  stopDiagnostic();
   if(pushHistory) navHistory.push(elm);
 }
-function goToMenu(){ navHistory = []; showScreen(modeSelect, false); }
+function goToHome(){ navHistory = []; showScreen(home, false); }
+function goToMenu(){ navHistory = [home]; showScreen(modeSelect, true); }
 function goBack(){
   navHistory.pop();
   const prev = navHistory.pop();
-  if(prev){ showScreen(prev, true); } else { goToMenu(); }
+  if(prev){ showScreen(prev, true); } else { goToHome(); }
 }
 backBtn.addEventListener('click', goBack);
 el('toMenuBtn').addEventListener('click', goToMenu);
@@ -950,24 +1062,27 @@ function buildLevelGrid(container, opts){
     container.appendChild(btn);
   }
 }
+function currentLevelLabelFn(){
+  return READING_SUBJECTS[currentKind] ? READING_SUBJECTS[currentKind].levelLabel : undefined;
+}
 
 el('openSpeedLv').addEventListener('click', ()=>{
   buildLevelGrid(el('lsGridSpeed'), {
-    subLabelFn: currentKind==='kanji' ? kankenLabel : undefined,
+    subLabelFn: currentLevelLabelFn(),
     onSelect:(lv)=>{ showScreen(speedView, true); startSpeedMode(lv, false, null, currentKind); }
   });
   showScreen(levelSelectSpeed, true);
 });
 el('openSurvivalLv').addEventListener('click', ()=>{
   buildLevelGrid(el('lsGridSurvival'), {
-    subLabelFn: currentKind==='kanji' ? kankenLabel : undefined,
+    subLabelFn: currentLevelLabelFn(),
     onSelect:(lv)=>{ showScreen(survivalView, true); startSurvivalMode(lv, currentKind); }
   });
   showScreen(levelSelectSurvival, true);
 });
 function openStageSelect(){
   buildLevelGrid(el('lsGridStage'), {
-    subLabelFn: currentKind==='kanji' ? kankenLabel : undefined,
+    subLabelFn: currentLevelLabelFn(),
     lockedCheck:(lv)=> lv > stageUnlocked,
     clearedCheck:(lv)=> lv < stageUnlocked,
     onSelect:(lv)=>{ showScreen(speedView, true); startSpeedMode(lv, true, lv, currentKind); }
@@ -976,10 +1091,9 @@ function openStageSelect(){
 }
 el('openStageLv').addEventListener('click', openStageSelect);
 
-const ADAPTIVE_ENEMY_LEVEL = 3;
-el('openAdaptive').addEventListener('click', ()=>{
-  showScreen(speedView, true);
-  startSpeedMode(ADAPTIVE_ENEMY_LEVEL, false, null, currentKind, true);
+el('openDiagnostic').addEventListener('click', ()=>{
+  showScreen(diagnosticView, true);
+  startDiagnostic(currentKind);
 });
 
 /* ============ SPEED / STAGE BATTLE ============ */
@@ -991,20 +1105,19 @@ function speedRender(){
   el('youHpText').textContent = Math.max(0,sp.youHp)+'/100';
   el('enHpText').textContent = Math.max(0,sp.enHp)+'/'+sp.enHpMax;
 }
-function startSpeedMode(level, isStage, stageNum, kind, isAdaptive){
+function startSpeedMode(level, isStage, stageNum, kind){
   const params = battleLevelParams(level);
   sp = {
     youHp:MAX_HP, enHp:params.enemyHpMax, enHpMax:params.enemyHpMax,
     over:false, enemyTimer:null, streak:0, level, params,
     isStage: !!isStage, stageNum: stageNum,
     playerShot:null, enemyShot:null, passReadyAt:0, kind: kind || 'calc',
-    history:[], breakTimeout:null, breakTick:null,
-    adaptive: !!isAdaptive, adaptiveLevel: 1
+    history:[], breakTimeout:null, breakTick:null, lastQuestionKey:null
   };
   const badge = el('stageBadge');
   if(isStage){ badge.textContent = `STAGE ${stageNum} / 10`; badge.classList.remove('hidden'); }
   else { badge.classList.add('hidden'); }
-  el('speedLvTag').textContent = isAdaptive ? '目安Lv.1' : 'Lv.'+level;
+  el('speedLvTag').textContent = 'Lv.'+level;
   speedRender();
   el('speedLog').innerHTML = '⚔ まもなくバトル開始...';
   runReadyGo(el('speedProblemZone'), sp, ()=>{
@@ -1027,15 +1140,15 @@ function stopSpeedMode(){
 
 function nextSpeedProblem(){
   if(!sp || sp.over) return;
-  const effLevel = sp.adaptive
-    ? Math.max(1, Math.min(10, Math.round(sp.adaptiveLevel)))
-    : Math.min(10, sp.level + Math.floor(sp.streak/5));
-  if(sp.adaptive) el('speedLvTag').textContent = '目安Lv.'+effLevel;
-  const problem = sp.kind==='kanji' ? genKanjiProblem(effLevel) : fastGenProblem(effLevel);
-  const answer = sp.kind==='kanji' ? problem.reading : problem.result;
+  const effLevel = Math.min(10, sp.level + Math.floor(sp.streak/5));
+  const problem = isReadingKind(sp.kind)
+    ? genReadingProblem(sp.kind, effLevel, sp.lastQuestionKey)
+    : fastGenProblem(effLevel, sp.lastQuestionKey);
+  sp.lastQuestionKey = isReadingKind(sp.kind) ? problem.word : problem.text;
+  const answer = isReadingKind(sp.kind) ? problem.reading : problem.result;
   const startTime = Date.now();
 
-  if(sp.kind==='kanji'){
+  if(isReadingKind(sp.kind)){
     el('speedProblemZone').innerHTML = `
       <div class="kanjiSentence"><span class="sentPlain">${problem.before}</span><span class="sentTarget">${problem.word}</span><span class="sentPlain">${problem.after}</span></div>
       <div class="kanjiPrompt">色文字の部分をひらがなで入力</div>
@@ -1057,13 +1170,9 @@ function nextSpeedProblem(){
     if(!sp || sp.over) return;
     const elapsed = (Date.now()-startTime)/1000;
     const correct = (val !== null && val === answer);
-    const shown = sp.kind==='kanji' ? problem.word : problem.text;
+    const shown = isReadingKind(sp.kind) ? problem.word : problem.text;
     sp.history.push({kind:sp.kind, q:problem, res: correct?'correct':'wrong'});
-    if(sp.adaptive){
-      sp.adaptiveLevel = correct
-        ? Math.min(10, sp.adaptiveLevel + 0.4)
-        : Math.max(1, sp.adaptiveLevel - 0.7);
-    }
+    showAnswerEffect(correct);
     if(correct){
       sp.streak++;
       Sfx.correct();
@@ -1089,7 +1198,7 @@ function nextSpeedProblem(){
     showBreakExplanation(el('speedProblemZone'), problem, sp.kind, 'パス → 正解をチェック', 'pass', nextSpeedProblem, sp);
   }
 
-  if(sp.kind==='kanji'){
+  if(isReadingKind(sp.kind)){
     setupKanjiAnswer(el('spKanjiInput'), el('spKanjiOk'), el('spKanjiPass'), submit, pass, sp);
   } else {
     buildNumpad(el('spNumpad'), el('spAnswerDisplay'), submit, '攻撃!', sp, pass);
@@ -1123,7 +1232,6 @@ function endSpeed(win, silent){
   if(sp.breakTimeout) clearTimeout(sp.breakTimeout);
   if(sp.breakTick) clearInterval(sp.breakTick);
   const isStage = sp.isStage, stageNum = sp.stageNum, kind = sp.kind;
-  const isAdaptive = sp.adaptive, finalLevel = Math.round(sp.adaptiveLevel||1);
 
   if(!silent){ win ? Sfx.win() : Sfx.lose(); }
   lastEnd = ()=>endSpeed(win, true);
@@ -1159,19 +1267,13 @@ function endSpeed(win, silent){
     });
     el('toMenuBtn2').addEventListener('click', openStageSelect);
   } else {
-    if(isAdaptive){
-      el('overlaySub').textContent = win
-        ? `あなたにちょうどいいのは Lv.${finalLevel} くらいかも！このレベルでステージやサバイバルにも挑戦してみよう。`
-        : `今回の到達レベルは Lv.${finalLevel}。この辺りから練習するとちょうどいいかも。`;
-    } else {
-      el('overlaySub').textContent = '';
-    }
+    el('overlaySub').textContent = '';
     el('overlayBtnRow').innerHTML = `<button id="retryBtn">もう一度</button><button class="secondary" id="toMenuBtn">モード選択へ</button>`;
     el('retryBtn').addEventListener('click', ()=>{
-      const lv = isAdaptive ? ADAPTIVE_ENEMY_LEVEL : (sp ? sp.level : 1);
+      const lv = sp ? sp.level : 1;
       overlayEl.classList.remove('show');
       showScreen(speedView, true);
-      startSpeedMode(lv, false, null, kind, isAdaptive);
+      startSpeedMode(lv, false, null, kind);
     });
     el('toMenuBtn').addEventListener('click', goToMenu);
   }
@@ -1190,7 +1292,7 @@ function survRender(){
 function startSurvivalMode(level, kind){
   const params = survivalLevelParams(level);
   sv = { score:0, miss:0, over:false, tickId:null, level, params, passReadyAt:0, kind: kind || 'calc',
-    history:[], breakTimeout:null, breakTick:null };
+    history:[], breakTimeout:null, breakTick:null, lastQuestionKey:null };
   el('survLvTag').textContent = 'Lv.'+level;
   survRender();
   el('survLog').innerHTML = '⚔ まもなく開始...';
@@ -1212,12 +1314,15 @@ function stopSurvivalMode(){
 function nextSurvProblem(){
   if(!sv || sv.over) return;
   const effLevel = Math.min(10, sv.level + Math.floor(sv.score/5));
-  const problem = sv.kind==='kanji' ? genKanjiProblem(effLevel) : genProblem(effLevel);
-  const answer = sv.kind==='kanji' ? problem.reading : problem.result;
+  const problem = isReadingKind(sv.kind)
+    ? genReadingProblem(sv.kind, effLevel, sv.lastQuestionKey)
+    : genProblem(effLevel, sv.lastQuestionKey);
+  sv.lastQuestionKey = isReadingKind(sv.kind) ? problem.word : problem.text;
+  const answer = isReadingKind(sv.kind) ? problem.reading : problem.result;
   const TIME_TOTAL = sv.params.timeTotal;
   let timeLeft = TIME_TOTAL;
 
-  if(sv.kind==='kanji'){
+  if(isReadingKind(sv.kind)){
     el('survProblemZone').innerHTML = `
       <div class="kanjiSentence"><span class="sentPlain">${problem.before}</span><span class="sentTarget">${problem.word}</span><span class="sentPlain">${problem.after}</span></div>
       <div class="kanjiPrompt">色文字の部分をひらがなで入力</div>
@@ -1250,8 +1355,9 @@ function nextSurvProblem(){
     clearInterval(sv.tickId);
     if(!sv || sv.over) return;
     const correct = (val!==null && val===answer);
-    const shown = sv.kind==='kanji' ? problem.word : problem.text;
+    const shown = isReadingKind(sv.kind) ? problem.word : problem.text;
     sv.history.push({kind:sv.kind, q:problem, res: correct?'correct':'wrong'});
+    showAnswerEffect(correct);
     if(correct){
       sv.score++;
       Sfx.correct();
@@ -1277,7 +1383,7 @@ function nextSurvProblem(){
     showBreakExplanation(el('survProblemZone'), problem, sv.kind, 'パス → 正解をチェック', 'pass', nextSurvProblem, sv);
   }
 
-  if(sv.kind==='kanji'){
+  if(isReadingKind(sv.kind)){
     setupKanjiAnswer(el('svKanjiInput'), el('svKanjiOk'), el('svKanjiPass'), finish, pass, sv);
   } else {
     buildNumpad(el('svNumpad'), el('svAnswerDisplay'), finish, '決定', sv, pass);
@@ -1307,7 +1413,134 @@ function endSurvival(silent){
   addReviewButton();
 }
 
-navHistory.push(modeSelect);
+/* ============ 診断バトル(スコアアタック) ============
+   HP制のバトルではなく、全12問を解いて点数を競う自分の実力診断モード。
+   正解が続くと目安レベルが上がり、間違えると下がる(ちょうどいいバトルの後継)。
+   レベル選択なしで即挑戦でき、今ちょうどいいレベルを知りたいときにも使える。 */
+const DIAGNOSTIC_QUESTIONS = 12;
+let dx = null;
+
+function startDiagnostic(kind){
+  dx = {
+    over:false, kind: kind || 'calc', index:0, score:0, adaptiveLevel:1,
+    lastQuestionKey:null, passReadyAt:0, history:[], breakTimeout:null, breakTick:null
+  };
+  el('diagScore').textContent = '0';
+  el('diagProgress').textContent = `1/${DIAGNOSTIC_QUESTIONS}`;
+  el('diagLevel').textContent = '目安Lv.1';
+  el('diagLog').innerHTML = '⚔ まもなく開始...';
+  runReadyGo(el('diagProblemZone'), dx, ()=>{
+    if(!dx || dx.over) return;
+    el('diagLog').innerHTML = `全${DIAGNOSTIC_QUESTIONS}問のスコアアタック！`;
+    nextDiagnosticProblem();
+  });
+}
+function stopDiagnostic(){
+  if(dx){
+    if(dx.breakTimeout) clearTimeout(dx.breakTimeout);
+    if(dx.breakTick) clearInterval(dx.breakTick);
+  }
+  dx = null;
+}
+
+function nextDiagnosticProblem(){
+  if(!dx || dx.over) return;
+  if(dx.index >= DIAGNOSTIC_QUESTIONS){ endDiagnostic(); return; }
+  const effLevel = Math.max(1, Math.min(10, Math.round(dx.adaptiveLevel)));
+  el('diagLevel').textContent = '目安Lv.'+effLevel;
+  el('diagProgress').textContent = `${dx.index+1}/${DIAGNOSTIC_QUESTIONS}`;
+  const problem = isReadingKind(dx.kind)
+    ? genReadingProblem(dx.kind, effLevel, dx.lastQuestionKey)
+    : fastGenProblem(effLevel, dx.lastQuestionKey);
+  dx.lastQuestionKey = isReadingKind(dx.kind) ? problem.word : problem.text;
+  const answer = isReadingKind(dx.kind) ? problem.reading : problem.result;
+  const startTime = Date.now();
+
+  if(isReadingKind(dx.kind)){
+    el('diagProblemZone').innerHTML = `
+      <div class="kanjiSentence"><span class="sentPlain">${problem.before}</span><span class="sentTarget">${problem.word}</span><span class="sentPlain">${problem.after}</span></div>
+      <div class="kanjiPrompt">色文字の部分をひらがなで入力</div>
+      <div class="kanjiInputRow">
+        <input type="text" id="dxKanjiInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <button id="dxKanjiOk">決定</button>
+      </div>
+      <button class="passBtnStandalone" id="dxKanjiPass">PASS</button>
+    `;
+  } else {
+    el('diagProblemZone').innerHTML = `
+      <div class="equation">${problem.text}<span class="op">=</span>?</div>
+      <div class="answerDisplay" id="dxAnswerDisplay">0</div>
+      <div class="numpad" id="dxNumpad"></div>
+    `;
+  }
+
+  function submit(val){
+    if(!dx || dx.over) return;
+    const elapsed = (Date.now()-startTime)/1000;
+    const correct = (val !== null && val === answer);
+    const shown = isReadingKind(dx.kind) ? problem.word : problem.text;
+    dx.history.push({kind:dx.kind, q:problem, res: correct?'correct':'wrong'});
+    showAnswerEffect(correct);
+    dx.index++;
+    if(correct){
+      Sfx.correct();
+      const speedBonus = elapsed < currentSpeedPreset().bonusSec;
+      const gained = Math.round(10 * (1 + effLevel*0.15)) + (speedBonus ? 5 : 0);
+      dx.score += gained;
+      dx.adaptiveLevel = Math.min(10, dx.adaptiveLevel + 0.4);
+      el('diagScore').textContent = dx.score;
+      el('diagLog').innerHTML = `<b>正解!</b> ${shown}=${answer} → +${gained}点${speedBonus?' スピードボーナス!':''}`;
+      nextDiagnosticProblem();
+    } else {
+      Sfx.wrong();
+      dx.adaptiveLevel = Math.max(1, dx.adaptiveLevel - 0.7);
+      shakeElement(el('diagProblemZone'));
+      el('diagLog').innerHTML = `<b>ミス...</b> 正解は ${answer}`;
+      showBreakExplanation(el('diagProblemZone'), problem, dx.kind, 'ミス... 正解をチェック!', 'ng', nextDiagnosticProblem, dx);
+    }
+  }
+  function pass(){
+    if(!dx || dx.over) return;
+    dx.history.push({kind:dx.kind, q:problem, res:'pass'});
+    dx.index++;
+    Sfx.pass();
+    el('diagLog').innerHTML = `<span style="color:var(--sub)">パスした(正解: ${answer})</span>`;
+    showBreakExplanation(el('diagProblemZone'), problem, dx.kind, 'パス → 正解をチェック', 'pass', nextDiagnosticProblem, dx);
+  }
+
+  if(isReadingKind(dx.kind)){
+    setupKanjiAnswer(el('dxKanjiInput'), el('dxKanjiOk'), el('dxKanjiPass'), submit, pass, dx);
+  } else {
+    buildNumpad(el('dxNumpad'), el('dxAnswerDisplay'), submit, '決定', dx, pass);
+  }
+}
+
+function endDiagnostic(silent){
+  dx.over = true;
+  if(dx.breakTimeout) clearTimeout(dx.breakTimeout);
+  if(dx.breakTick) clearInterval(dx.breakTick);
+  const finalLevel = Math.round(dx.adaptiveLevel);
+  const score = dx.score;
+  const kind = dx.kind;
+  if(!silent) Sfx.win();
+  lastEnd = ()=>endDiagnostic(true);
+  lastHistory = dx.history || [];
+
+  el('overlayTitle').textContent = '診断結果';
+  el('overlayTitle').style.color = 'var(--ok)';
+  el('overlaySub').textContent = `スコア ${score}点 / あなたの実力は Lv.${finalLevel} くらい！このレベルでステージやサバイバルにも挑戦してみよう。`;
+  el('overlayBtnRow').innerHTML = `<button id="retryBtn">もう一度診断</button><button class="secondary" id="toMenuBtn">モード選択へ</button>`;
+  el('retryBtn').addEventListener('click', ()=>{
+    overlayEl.classList.remove('show');
+    showScreen(diagnosticView, true);
+    startDiagnostic(kind);
+  });
+  el('toMenuBtn').addEventListener('click', goToMenu);
+  overlayEl.classList.add('show');
+  addReviewButton();
+}
+
+navHistory.push(home);
 </script>
 </body>
 </html>
