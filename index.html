@@ -105,6 +105,12 @@
   .sentTarget{color:var(--gold);font-size:30px;font-weight:800;margin:0 2px;}
   .kanjiPrompt{font-size:11.5px;color:var(--sub);font-family:Arial,sans-serif;letter-spacing:.05em;}
 
+  /* ---------- れきしモード: 四択クイズ ---------- */
+  .quizQuestion{font-size:16px;line-height:1.7;text-align:center;font-family:Arial,sans-serif;font-weight:700;padding:0 4px;max-width:480px;}
+  .quizChoices{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;max-width:420px;}
+  .quizChoice{font-family:Arial,sans-serif;font-weight:700;font-size:13px;padding:12px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;text-align:center;line-height:1.4;}
+  .quizChoice:hover{border-color:var(--gold);}
+
   .answerDisplay{min-width:140px;min-height:40px;font-size:24px;text-align:center;letter-spacing:.05em;background:#0b0d12;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:4px 10px;font-family:'Courier New',Consolas,monospace;}
 
   .timerbar{width:220px;height:6px;background:#00000055;border-radius:4px;overflow:hidden;border:1px solid var(--line);}
@@ -211,7 +217,7 @@
   .revMain{color:var(--text);font-size:14px;font-weight:700;}
   .revSent{color:var(--sub);font-size:11.5px;margin-top:2px;}
   .revMeaning{color:var(--sub);font-size:12px;margin-top:2px;line-height:1.55;}
-  .numkey:active,.overlay button:active,.modeCard button:active,.kanjiInputRow button:active,.passBtnStandalone:active{transform:scale(.94);}
+  .numkey:active,.overlay button:active,.modeCard button:active,.kanjiInputRow button:active,.passBtnStandalone:active,.quizChoice:active{transform:scale(.94);}
 
   /* ---------- 正解・不正解エフェクト ---------- */
   .answerFxLayer{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:40;}
@@ -555,7 +561,11 @@ function loadMistakes(){
 }
 function saveMistakes(){ localStorage.setItem('kb_mistakes', JSON.stringify(mistakeBank)); }
 let mistakeBank = loadMistakes();
-function mistakeKeyOf(kind, q){ return isReadingKind(kind) ? q.word : q.text; }
+function mistakeKeyOf(kind, q){
+  if(isReadingKind(kind)) return q.word;
+  if(isQuizKind(kind)) return q.q;
+  return q.text;
+}
 function recordMistake(kind, q){
   if(!mistakeBank[kind]) mistakeBank[kind] = [];
   const list = mistakeBank[kind];
@@ -633,6 +643,10 @@ function showBreakExplanation(zoneEl, problem, kind, head, headClass, cb, state)
     inner = `<div class="exWord">${problem.word}</div>
       <div class="exReading">読み方: ${problem.reading}</div>
       ${problem.meaning ? `<div class="exMeaning">意味: ${problem.meaning}</div>` : ''}`;
+  } else if(isQuizKind(kind)){
+    inner = `<div class="exWord" style="font-size:19px;">${problem.q}</div>
+      <div class="exReading">正解: ${problem.choices[problem.correctIndex]}</div>
+      ${problem.meaning ? `<div class="exMeaning">${problem.meaning}</div>` : ''}`;
   } else {
     inner = `<div class="exWord">${problem.text} = ${problem.result}</div>`;
   }
@@ -672,6 +686,14 @@ function reviewItemHTML(item){
     return `<div class="revItem">${mark}<div>
       <div class="revMain">${q.word}(${q.reading})</div>
       <div class="revSent">${q.before}${q.word}${q.after}</div>
+      ${q.meaning ? `<div class="revMeaning">${q.meaning}</div>` : ''}
+    </div></div>`;
+  }
+  if(isQuizKind(item.kind)){
+    const q = item.q;
+    return `<div class="revItem">${mark}<div>
+      <div class="revMain">${q.q}</div>
+      <div class="revSent">正解: ${q.choices[q.correctIndex]}</div>
       ${q.meaning ? `<div class="revMeaning">${q.meaning}</div>` : ''}
     </div></div>`;
   }
@@ -789,6 +811,50 @@ function setupKanjiAnswer(inputEl, okBtn, passBtn, onSubmit, onPass, passState){
 
   function cleanup(){
     inputEl.removeEventListener('keydown', keyHandler);
+    clearInterval(passTick);
+  }
+  activePadCleanup = cleanup;
+}
+
+// れきしモード: 四択クイズの選択肢ボタンで回答する方式(キーボードの1〜4キーにも対応)
+function setupQuizAnswer(choicesEl, passBtn, onSubmit, onPass, passState){
+  if(activePadCleanup){ activePadCleanup(); activePadCleanup=null; }
+  const btns = [...choicesEl.querySelectorAll('.quizChoice')];
+
+  function submitNow(idx){
+    if(gamePaused) return;
+    Sfx.tap();
+    cleanup();
+    onSubmit(idx);
+  }
+  btns.forEach((b,i)=> b.addEventListener('click', ()=> submitNow(i)));
+
+  function updatePassBtn(){
+    const remain = (passState.passReadyAt||0) - Date.now();
+    if(remain>0){ passBtn.disabled=true; passBtn.textContent = `PASS (${Math.ceil(remain/1000)}s)`; }
+    else { passBtn.disabled=false; passBtn.textContent='PASS'; }
+  }
+  updatePassBtn();
+  const passTick = setInterval(updatePassBtn, 200);
+  passBtn.addEventListener('click', ()=>{
+    if(gamePaused) return;
+    if(Date.now() < (passState.passReadyAt||0)) return;
+    passState.passReadyAt = Date.now() + PASS_COOLDOWN;
+    cleanup();
+    onPass();
+  });
+
+  function keyHandler(e){
+    if(gamePaused) return;
+    if(e.key>='1' && e.key<='4'){
+      const idx = parseInt(e.key,10)-1;
+      if(btns[idx]) submitNow(idx);
+    }
+  }
+  document.addEventListener('keydown', keyHandler);
+
+  function cleanup(){
+    document.removeEventListener('keydown', keyHandler);
     clearInterval(passTick);
   }
   activePadCleanup = cleanup;
@@ -927,10 +993,10 @@ const SUBJECT_DESCRIPTIONS = {
     diagnostic: '全12問のスコアアタックで自分の実力を診断。漢字の読み方の正解が続くとだんだん難しくなり、間違えるとやさしく戻る。今ちょうどいいレベルを知りたいときにも使える。'
   },
   history: {
-    speed: '歴史の重要語句の読み方問題が次々ランダムに出てくる。ひらがなで正しく答えて攻撃しよう。先にHPを0にした方が勝ち。',
-    survival: '歴史の重要語句の読み方問題が制限時間内に出題され続ける。不正解・時間切れで1ミス、5ミスでゲームオーバー。',
-    stage: '歴史の重要語句の読み方問題でLv.1から順に敵を倒してステージクリア。クリアすると次のステージが解放される。',
-    diagnostic: '全12問のスコアアタックで自分の実力を診断。歴史の重要語句の正解が続くとだんだん難しくなり、間違えるとやさしく戻る。今ちょうどいいレベルを知りたいときにも使える。'
+    speed: '歴史の四択クイズが次々ランダムに出てくる。「〜を行ったのは…と誰?」のような問題に正しく答えて攻撃しよう。先にHPを0にした方が勝ち。',
+    survival: '歴史の四択クイズが制限時間内に出題され続ける。不正解・時間切れで1ミス、5ミスでゲームオーバー。',
+    stage: '歴史の四択クイズでLv.1から順に敵を倒してステージクリア。クリアすると次のステージが解放される。',
+    diagnostic: '全12問のスコアアタックで自分の実力を診断。歴史の四択クイズの正解が続くとだんだん難しくなり、間違えるとやさしく戻る。今ちょうどいいレベルを知りたいときにも使える。'
   }
 };
 function setKind(kind){
@@ -1053,19 +1119,15 @@ function fastGenProblem(level, excludeText){
   return fastGenProblemOnce(level);
 }
 
-/* ---- 「読み方」系の問題(かんじ・れきし共通) ----
-   短文の中の1単語だけを読む形式。かんじは漢検の級を目安に、れきしは時代の
-   進み方を目安にレベルをスライドさせている。
-   KANJI_DATA / HISTORY_DATA は外部ファイル(kanji-data.js / history-data.js)で
-   定義。各エントリは [前の文, 対象の単語, 読み方, 後の文, 意味(省略可)] の形式 */
+/* ---- 「読み方」系の問題(かんじ) ----
+   短文の中の1単語だけを読む形式。漢検の級を目安にレベルをスライドさせている。
+   KANJI_DATA は外部ファイル(kanji-data.js)で定義。各エントリは
+   [前の文, 対象の単語, 読み方, 後の文, 意味(省略可)] の形式 */
 const KANKEN_GRADES = ['10級','9級','8級','7級','6級','5級','4級','3級','準2級','2級','準1級','1級'];
 function kankenLabel(lv){ return KANKEN_GRADES[lv-1] + '〜' + KANKEN_GRADES[lv+1]; }
-const HISTORY_ERA = ['縄文〜奈良','平安','鎌倉・室町','安土桃山・江戸初期','江戸中期','幕末・明治','明治・大正','昭和戦前','戦後・現代','発展編'];
-function historyEraLabel(lv){ return HISTORY_ERA[lv-1]; }
 
 const READING_SUBJECTS = {
-  kanji:   { data: KANJI_DATA,   levelLabel: kankenLabel },
-  history: { data: HISTORY_DATA, levelLabel: historyEraLabel }
+  kanji: { data: KANJI_DATA, levelLabel: kankenLabel }
 };
 function isReadingKind(kind){ return !!READING_SUBJECTS[kind]; }
 /* excludeWord を渡すと、直前と同じ単語が出た場合は数回引き直す(連続出題防止)。 */
@@ -1079,6 +1141,42 @@ function genReadingProblem(kind, level, excludeWord){
     }
   }
   return {before:pick[0], word:pick[1], reading:pick[2], after:pick[3], meaning:pick[4]||''};
+}
+
+/* ---- 「クイズ」系の問題(れきし) ----
+   「〜を行ったのは…と誰?」のような四択問題。時代の進み方を目安にレベルを
+   スライドさせている。HISTORY_DATA は外部ファイル(history-data.js)で定義。
+   各エントリは { q, choices:[4つ(0番目が正解)], answer:0, meaning } の形式で、
+   出題時に選択肢をシャッフルして正解の位置をランダムにする。 */
+const HISTORY_ERA = ['縄文〜奈良','平安','鎌倉・室町','安土桃山・江戸初期','江戸中期','幕末・明治','明治・大正','昭和戦前','戦後・現代','発展編'];
+function historyEraLabel(lv){ return HISTORY_ERA[lv-1]; }
+
+const QUIZ_SUBJECTS = {
+  history: { data: HISTORY_DATA, levelLabel: historyEraLabel }
+};
+function isQuizKind(kind){ return !!QUIZ_SUBJECTS[kind]; }
+function shuffledIndices(n){
+  const order = Array.from({length:n}, (_,i)=>i);
+  for(let i=order.length-1;i>0;i--){
+    const j = randInt(0,i);
+    [order[i],order[j]] = [order[j],order[i]];
+  }
+  return order;
+}
+/* excludeQ を渡すと、直前と同じ設問が出た場合は数回引き直す(連続出題防止)。 */
+function genQuizProblem(kind, level, excludeQ){
+  const lv = Math.max(1, Math.min(10, Math.round(level)));
+  const list = QUIZ_SUBJECTS[kind].data[lv];
+  let pick = list[randInt(0, list.length-1)];
+  if(list.length>1 && excludeQ){
+    for(let tries=0; tries<6 && pick.q===excludeQ; tries++){
+      pick = list[randInt(0, list.length-1)];
+    }
+  }
+  const order = shuffledIndices(pick.choices.length);
+  const choices = order.map(i=>pick.choices[i]);
+  const correctIndex = order.indexOf(pick.answer);
+  return { q: pick.q, choices, correctIndex, meaning: pick.meaning||'' };
 }
 
 /* ============ NAV ============
@@ -1186,7 +1284,9 @@ function buildLevelGrid(container, opts){
   }
 }
 function currentLevelLabelFn(){
-  return READING_SUBJECTS[currentKind] ? READING_SUBJECTS[currentKind].levelLabel : undefined;
+  if(READING_SUBJECTS[currentKind]) return READING_SUBJECTS[currentKind].levelLabel;
+  if(QUIZ_SUBJECTS[currentKind]) return QUIZ_SUBJECTS[currentKind].levelLabel;
+  return undefined;
 }
 
 el('openSpeedLv').addEventListener('click', ()=>{
@@ -1273,11 +1373,11 @@ function stopSpeedMode(){
 function nextSpeedProblem(){
   if(!sp || sp.over) return;
   const effLevel = Math.min(10, sp.level + Math.floor(sp.streak/5));
-  const problem = isReadingKind(sp.kind)
-    ? genReadingProblem(sp.kind, effLevel, sp.lastQuestionKey)
+  const problem = isReadingKind(sp.kind) ? genReadingProblem(sp.kind, effLevel, sp.lastQuestionKey)
+    : isQuizKind(sp.kind) ? genQuizProblem(sp.kind, effLevel, sp.lastQuestionKey)
     : fastGenProblem(effLevel, sp.lastQuestionKey);
-  sp.lastQuestionKey = isReadingKind(sp.kind) ? problem.word : problem.text;
-  const answer = isReadingKind(sp.kind) ? problem.reading : problem.result;
+  sp.lastQuestionKey = isReadingKind(sp.kind) ? problem.word : isQuizKind(sp.kind) ? problem.q : problem.text;
+  const answer = isReadingKind(sp.kind) ? problem.reading : isQuizKind(sp.kind) ? problem.correctIndex : problem.result;
   const startTime = Date.now();
 
   if(isReadingKind(sp.kind)){
@@ -1289,6 +1389,12 @@ function nextSpeedProblem(){
         <button id="spKanjiOk">攻撃!</button>
       </div>
       <button class="passBtnStandalone" id="spKanjiPass">PASS</button>
+    `;
+  } else if(isQuizKind(sp.kind)){
+    el('speedProblemZone').innerHTML = `
+      <div class="quizQuestion">${problem.q}</div>
+      <div class="quizChoices" id="spQuizChoices">${problem.choices.map((c,i)=>`<button class="quizChoice" data-idx="${i}">${c}</button>`).join('')}</div>
+      <button class="passBtnStandalone" id="spQuizPass">PASS</button>
     `;
   } else {
     el('speedProblemZone').innerHTML = `
@@ -1302,7 +1408,9 @@ function nextSpeedProblem(){
     if(!sp || sp.over) return;
     const elapsed = (Date.now()-startTime)/1000;
     const correct = (val !== null && val === answer);
-    const shown = isReadingKind(sp.kind) ? problem.word : problem.text;
+    const shown = isReadingKind(sp.kind) ? `${problem.word}=${problem.reading}`
+      : isQuizKind(sp.kind) ? problem.choices[problem.correctIndex]
+      : `${problem.text}=${problem.result}`;
     sp.history.push({kind:sp.kind, q:problem, res: correct?'correct':'wrong'});
     showAnswerEffect(correct);
     if(correct){
@@ -1312,27 +1420,32 @@ function nextSpeedProblem(){
       const speedBonus = elapsed < currentSpeedPreset().bonusSec;
       if(speedBonus) dmg += 5;
       const clashed = fireShot('you', dmg, el('speedArena'));
-      el('speedLog').innerHTML = `<b>命中!</b> ${shown}=${answer} → 数式攻撃を発射(${dmg})${speedBonus?' スピードボーナス!':''}${clashed?' <b>※相殺!</b>':''}`;
+      el('speedLog').innerHTML = `<b>命中!</b> ${shown} → 数式攻撃を発射(${dmg})${speedBonus?' スピードボーナス!':''}${clashed?' <b>※相殺!</b>':''}`;
       nextSpeedProblem();
     } else {
       sp.streak = 0;
       Sfx.wrong();
       recordMistake(sp.kind, problem);
       shakeElement(el('speedProblemZone'));
-      el('speedLog').innerHTML = `<b>ミス...</b> 正解は ${answer}`;
+      el('speedLog').innerHTML = `<b>ミス...</b> 正解は ${shown}`;
       showBreakExplanation(el('speedProblemZone'), problem, sp.kind, 'ミス... 正解をチェック!', 'ng', nextSpeedProblem, sp);
     }
   }
   function pass(){
     if(!sp || sp.over) return;
+    const shown = isReadingKind(sp.kind) ? `${problem.word}=${problem.reading}`
+      : isQuizKind(sp.kind) ? problem.choices[problem.correctIndex]
+      : `${problem.text}=${problem.result}`;
     sp.history.push({kind:sp.kind, q:problem, res:'pass'});
     Sfx.pass();
-    el('speedLog').innerHTML = `<span style="color:var(--sub)">パスした(正解: ${answer})</span>`;
+    el('speedLog').innerHTML = `<span style="color:var(--sub)">パスした(正解: ${shown})</span>`;
     showBreakExplanation(el('speedProblemZone'), problem, sp.kind, 'パス → 正解をチェック', 'pass', nextSpeedProblem, sp);
   }
 
   if(isReadingKind(sp.kind)){
     setupKanjiAnswer(el('spKanjiInput'), el('spKanjiOk'), el('spKanjiPass'), submit, pass, sp);
+  } else if(isQuizKind(sp.kind)){
+    setupQuizAnswer(el('spQuizChoices'), el('spQuizPass'), submit, pass, sp);
   } else {
     buildNumpad(el('spNumpad'), el('spAnswerDisplay'), submit, '攻撃!', sp, pass);
   }
@@ -1449,11 +1562,11 @@ function stopSurvivalMode(){
 function nextSurvProblem(){
   if(!sv || sv.over) return;
   const effLevel = Math.min(10, sv.level + Math.floor(sv.score/5));
-  const problem = isReadingKind(sv.kind)
-    ? genReadingProblem(sv.kind, effLevel, sv.lastQuestionKey)
+  const problem = isReadingKind(sv.kind) ? genReadingProblem(sv.kind, effLevel, sv.lastQuestionKey)
+    : isQuizKind(sv.kind) ? genQuizProblem(sv.kind, effLevel, sv.lastQuestionKey)
     : genProblem(effLevel, sv.lastQuestionKey);
-  sv.lastQuestionKey = isReadingKind(sv.kind) ? problem.word : problem.text;
-  const answer = isReadingKind(sv.kind) ? problem.reading : problem.result;
+  sv.lastQuestionKey = isReadingKind(sv.kind) ? problem.word : isQuizKind(sv.kind) ? problem.q : problem.text;
+  const answer = isReadingKind(sv.kind) ? problem.reading : isQuizKind(sv.kind) ? problem.correctIndex : problem.result;
   const TIME_TOTAL = sv.params.timeTotal;
   sv.timeLeft = TIME_TOTAL;
 
@@ -1466,6 +1579,13 @@ function nextSurvProblem(){
         <button id="svKanjiOk">決定</button>
       </div>
       <button class="passBtnStandalone" id="svKanjiPass">PASS</button>
+      <div class="timerbar"><div class="timerfill" id="svTimerFill" style="width:100%"></div></div>
+    `;
+  } else if(isQuizKind(sv.kind)){
+    el('survProblemZone').innerHTML = `
+      <div class="quizQuestion">${problem.q}</div>
+      <div class="quizChoices" id="svQuizChoices">${problem.choices.map((c,i)=>`<button class="quizChoice" data-idx="${i}">${c}</button>`).join('')}</div>
+      <button class="passBtnStandalone" id="svQuizPass">PASS</button>
       <div class="timerbar"><div class="timerfill" id="svTimerFill" style="width:100%"></div></div>
     `;
   } else {
@@ -1492,13 +1612,15 @@ function nextSurvProblem(){
     clearInterval(sv.tickId);
     if(!sv || sv.over) return;
     const correct = (val!==null && val===answer);
-    const shown = isReadingKind(sv.kind) ? problem.word : problem.text;
+    const shown = isReadingKind(sv.kind) ? `${problem.word}=${problem.reading}`
+      : isQuizKind(sv.kind) ? problem.choices[problem.correctIndex]
+      : `${problem.text}=${problem.result}`;
     sv.history.push({kind:sv.kind, q:problem, res: correct?'correct':'wrong'});
     showAnswerEffect(correct);
     if(correct){
       sv.score++;
       Sfx.correct();
-      el('survLog').innerHTML = `<b>正解!</b> ${shown} = ${answer}`;
+      el('survLog').innerHTML = `<b>正解!</b> ${shown}`;
       survRender();
       nextSurvProblem();
     } else {
@@ -1506,7 +1628,7 @@ function nextSurvProblem(){
       Sfx.wrong();
       recordMistake(sv.kind, problem);
       shakeElement(el('survProblemZone'));
-      el('survLog').innerHTML = val===null ? `<b>時間切れ...</b> 正解は ${answer}` : `<b>不正解...</b> 正解は ${answer}`;
+      el('survLog').innerHTML = val===null ? `<b>時間切れ...</b> 正解は ${shown}` : `<b>不正解...</b> 正解は ${shown}`;
       survRender();
       if(sv.miss >= 5){ endSurvival(); return; }
       showBreakExplanation(el('survProblemZone'), problem, sv.kind, val===null ? '時間切れ... 正解をチェック!' : 'ミス... 正解をチェック!', 'ng', nextSurvProblem, sv);
@@ -1515,14 +1637,19 @@ function nextSurvProblem(){
   function pass(){
     clearInterval(sv.tickId);
     if(!sv || sv.over) return;
+    const shown = isReadingKind(sv.kind) ? `${problem.word}=${problem.reading}`
+      : isQuizKind(sv.kind) ? problem.choices[problem.correctIndex]
+      : `${problem.text}=${problem.result}`;
     sv.history.push({kind:sv.kind, q:problem, res:'pass'});
     Sfx.pass();
-    el('survLog').innerHTML = `<span style="color:var(--sub)">パスした(正解: ${answer})</span>`;
+    el('survLog').innerHTML = `<span style="color:var(--sub)">パスした(正解: ${shown})</span>`;
     showBreakExplanation(el('survProblemZone'), problem, sv.kind, 'パス → 正解をチェック', 'pass', nextSurvProblem, sv);
   }
 
   if(isReadingKind(sv.kind)){
     setupKanjiAnswer(el('svKanjiInput'), el('svKanjiOk'), el('svKanjiPass'), finish, pass, sv);
+  } else if(isQuizKind(sv.kind)){
+    setupQuizAnswer(el('svQuizChoices'), el('svQuizPass'), finish, pass, sv);
   } else {
     buildNumpad(el('svNumpad'), el('svAnswerDisplay'), finish, '決定', sv, pass);
   }
@@ -1587,11 +1714,11 @@ function nextDiagnosticProblem(){
   const effLevel = Math.max(1, Math.min(10, Math.round(dx.adaptiveLevel)));
   el('diagLevel').textContent = '目安Lv.'+effLevel;
   el('diagProgress').textContent = `${dx.index+1}/${DIAGNOSTIC_QUESTIONS}`;
-  const problem = isReadingKind(dx.kind)
-    ? genReadingProblem(dx.kind, effLevel, dx.lastQuestionKey)
+  const problem = isReadingKind(dx.kind) ? genReadingProblem(dx.kind, effLevel, dx.lastQuestionKey)
+    : isQuizKind(dx.kind) ? genQuizProblem(dx.kind, effLevel, dx.lastQuestionKey)
     : fastGenProblem(effLevel, dx.lastQuestionKey);
-  dx.lastQuestionKey = isReadingKind(dx.kind) ? problem.word : problem.text;
-  const answer = isReadingKind(dx.kind) ? problem.reading : problem.result;
+  dx.lastQuestionKey = isReadingKind(dx.kind) ? problem.word : isQuizKind(dx.kind) ? problem.q : problem.text;
+  const answer = isReadingKind(dx.kind) ? problem.reading : isQuizKind(dx.kind) ? problem.correctIndex : problem.result;
   const startTime = Date.now();
 
   if(isReadingKind(dx.kind)){
@@ -1603,6 +1730,12 @@ function nextDiagnosticProblem(){
         <button id="dxKanjiOk">決定</button>
       </div>
       <button class="passBtnStandalone" id="dxKanjiPass">PASS</button>
+    `;
+  } else if(isQuizKind(dx.kind)){
+    el('diagProblemZone').innerHTML = `
+      <div class="quizQuestion">${problem.q}</div>
+      <div class="quizChoices" id="dxQuizChoices">${problem.choices.map((c,i)=>`<button class="quizChoice" data-idx="${i}">${c}</button>`).join('')}</div>
+      <button class="passBtnStandalone" id="dxQuizPass">PASS</button>
     `;
   } else {
     el('diagProblemZone').innerHTML = `
@@ -1616,7 +1749,9 @@ function nextDiagnosticProblem(){
     if(!dx || dx.over) return;
     const elapsed = (Date.now()-startTime)/1000;
     const correct = (val !== null && val === answer);
-    const shown = isReadingKind(dx.kind) ? problem.word : problem.text;
+    const shown = isReadingKind(dx.kind) ? `${problem.word}=${problem.reading}`
+      : isQuizKind(dx.kind) ? problem.choices[problem.correctIndex]
+      : `${problem.text}=${problem.result}`;
     dx.history.push({kind:dx.kind, q:problem, res: correct?'correct':'wrong'});
     showAnswerEffect(correct);
     dx.index++;
@@ -1627,28 +1762,33 @@ function nextDiagnosticProblem(){
       dx.score += gained;
       dx.adaptiveLevel = Math.min(10, dx.adaptiveLevel + 0.4);
       el('diagScore').textContent = dx.score;
-      el('diagLog').innerHTML = `<b>正解!</b> ${shown}=${answer} → +${gained}点${speedBonus?' スピードボーナス!':''}`;
+      el('diagLog').innerHTML = `<b>正解!</b> ${shown} → +${gained}点${speedBonus?' スピードボーナス!':''}`;
       nextDiagnosticProblem();
     } else {
       Sfx.wrong();
       recordMistake(dx.kind, problem);
       dx.adaptiveLevel = Math.max(1, dx.adaptiveLevel - 0.7);
       shakeElement(el('diagProblemZone'));
-      el('diagLog').innerHTML = `<b>ミス...</b> 正解は ${answer}`;
+      el('diagLog').innerHTML = `<b>ミス...</b> 正解は ${shown}`;
       showBreakExplanation(el('diagProblemZone'), problem, dx.kind, 'ミス... 正解をチェック!', 'ng', nextDiagnosticProblem, dx);
     }
   }
   function pass(){
     if(!dx || dx.over) return;
+    const shown = isReadingKind(dx.kind) ? `${problem.word}=${problem.reading}`
+      : isQuizKind(dx.kind) ? problem.choices[problem.correctIndex]
+      : `${problem.text}=${problem.result}`;
     dx.history.push({kind:dx.kind, q:problem, res:'pass'});
     dx.index++;
     Sfx.pass();
-    el('diagLog').innerHTML = `<span style="color:var(--sub)">パスした(正解: ${answer})</span>`;
+    el('diagLog').innerHTML = `<span style="color:var(--sub)">パスした(正解: ${shown})</span>`;
     showBreakExplanation(el('diagProblemZone'), problem, dx.kind, 'パス → 正解をチェック', 'pass', nextDiagnosticProblem, dx);
   }
 
   if(isReadingKind(dx.kind)){
     setupKanjiAnswer(el('dxKanjiInput'), el('dxKanjiOk'), el('dxKanjiPass'), submit, pass, dx);
+  } else if(isQuizKind(dx.kind)){
+    setupQuizAnswer(el('dxQuizChoices'), el('dxQuizPass'), submit, pass, dx);
   } else {
     buildNumpad(el('dxNumpad'), el('dxAnswerDisplay'), submit, '決定', dx, pass);
   }
@@ -1712,7 +1852,7 @@ function nextReviewProblem(){
   if(rp.index >= rp.queue.length){ endReviewPractice(); return; }
   el('reviewProgress').textContent = `${rp.index+1}/${rp.queue.length}`;
   const problem = rp.queue[rp.index];
-  const answer = isReadingKind(rp.kind) ? problem.reading : problem.result;
+  const answer = isReadingKind(rp.kind) ? problem.reading : isQuizKind(rp.kind) ? problem.correctIndex : problem.result;
 
   if(isReadingKind(rp.kind)){
     el('reviewProblemZone').innerHTML = `
@@ -1723,6 +1863,12 @@ function nextReviewProblem(){
         <button id="rpKanjiOk">決定</button>
       </div>
       <button class="passBtnStandalone" id="rpKanjiPass">PASS</button>
+    `;
+  } else if(isQuizKind(rp.kind)){
+    el('reviewProblemZone').innerHTML = `
+      <div class="quizQuestion">${problem.q}</div>
+      <div class="quizChoices" id="rpQuizChoices">${problem.choices.map((c,i)=>`<button class="quizChoice" data-idx="${i}">${c}</button>`).join('')}</div>
+      <button class="passBtnStandalone" id="rpQuizPass">PASS</button>
     `;
   } else {
     el('reviewProblemZone').innerHTML = `
@@ -1735,7 +1881,9 @@ function nextReviewProblem(){
   function submit(val){
     if(!rp || rp.over) return;
     const correct = (val !== null && val === answer);
-    const shown = isReadingKind(rp.kind) ? problem.word : problem.text;
+    const shown = isReadingKind(rp.kind) ? `${problem.word}=${problem.reading}`
+      : isQuizKind(rp.kind) ? problem.choices[problem.correctIndex]
+      : `${problem.text}=${problem.result}`;
     rp.history.push({kind:rp.kind, q:problem, res: correct?'correct':'wrong'});
     showAnswerEffect(correct);
     rp.index++;
@@ -1743,27 +1891,32 @@ function nextReviewProblem(){
       Sfx.correct();
       clearMistake(rp.kind, problem);
       rp.cleared++;
-      el('reviewLog').innerHTML = `<b>正解!</b> ${shown}=${answer} → ミス問題から卒業！`;
+      el('reviewLog').innerHTML = `<b>正解!</b> ${shown} → ミス問題から卒業！`;
       nextReviewProblem();
     } else {
       Sfx.wrong();
       recordMistake(rp.kind, problem);
       shakeElement(el('reviewProblemZone'));
-      el('reviewLog').innerHTML = `<b>まだミス...</b> 正解は ${answer}`;
+      el('reviewLog').innerHTML = `<b>まだミス...</b> 正解は ${shown}`;
       showBreakExplanation(el('reviewProblemZone'), problem, rp.kind, 'まだミス... 正解をチェック!', 'ng', nextReviewProblem, rp);
     }
   }
   function pass(){
     if(!rp || rp.over) return;
+    const shown = isReadingKind(rp.kind) ? `${problem.word}=${problem.reading}`
+      : isQuizKind(rp.kind) ? problem.choices[problem.correctIndex]
+      : `${problem.text}=${problem.result}`;
     rp.history.push({kind:rp.kind, q:problem, res:'pass'});
     rp.index++;
     Sfx.pass();
-    el('reviewLog').innerHTML = `<span style="color:var(--sub)">パスした(正解: ${answer})</span>`;
+    el('reviewLog').innerHTML = `<span style="color:var(--sub)">パスした(正解: ${shown})</span>`;
     showBreakExplanation(el('reviewProblemZone'), problem, rp.kind, 'パス → 正解をチェック', 'pass', nextReviewProblem, rp);
   }
 
   if(isReadingKind(rp.kind)){
     setupKanjiAnswer(el('rpKanjiInput'), el('rpKanjiOk'), el('rpKanjiPass'), submit, pass, rp);
+  } else if(isQuizKind(rp.kind)){
+    setupQuizAnswer(el('rpQuizChoices'), el('rpQuizPass'), submit, pass, rp);
   } else {
     buildNumpad(el('rpNumpad'), el('rpAnswerDisplay'), submit, '決定', rp, pass);
   }
