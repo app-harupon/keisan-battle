@@ -409,6 +409,7 @@
 <script src="kanji-data.js"></script>
 <script src="history-data.js"></script>
 <script src="world-history-data.js"></script>
+<script src="itpass-data.js"></script>
 <script>
 const MAX_HP = 100;
 const el = id => document.getElementById(id);
@@ -956,6 +957,7 @@ const SUBJECTS = [
   { id:'kanji',        icon:'🈶', label:'かんじの読み方',  ready:true },
   { id:'historyJp',    icon:'📜', label:'にほんし',       ready:true },
   { id:'historyWorld', icon:'🌍', label:'せかいし',       ready:true },
+  { id:'itpass',       icon:'💻', label:'ITパス',         ready:true },
   { id:'chem',         icon:'🧪', label:'かがく',         ready:false },
   { id:'english',      icon:'🔤', label:'えいご',         ready:false },
   { id:'music',        icon:'🎵', label:'おんがく',       ready:false },
@@ -1005,6 +1007,12 @@ const SUBJECT_DESCRIPTIONS = {
     survival: '世界史の四択クイズが制限時間内に出題され続ける。不正解・時間切れで1ミス、5ミスでゲームオーバー。',
     stage: '世界史の四択クイズでLv.1から順に敵を倒してステージクリア。クリアすると次のステージが解放される。',
     diagnostic: '全12問のスコアアタックで自分の実力を診断。世界史の四択クイズの正解が続くとだんだん難しくなり、間違えるとやさしく戻る。今ちょうどいいレベルを知りたいときにも使える。'
+  },
+  itpass: {
+    speed: 'ITパスポート試験を意識した四択クイズが次々ランダムに出てくる。IT基礎知識・マネジメント・ストラテジ分野の問題に正しく答えて攻撃しよう。先にHPを0にした方が勝ち。',
+    survival: 'ITパスポート四択クイズが制限時間内に出題され続ける。不正解・時間切れで1ミス、5ミスでゲームオーバー。',
+    stage: 'ITパスポート四択クイズでLv.1から順に敵を倒してステージクリア。クリアすると次のステージが解放される。',
+    diagnostic: '全12問のスコアアタックで自分の実力を診断。ITパスポート四択クイズの正解が続くとだんだん難しくなり、間違えるとやさしく戻る。今ちょうどいいレベルを知りたいときにも使える。'
   }
 };
 function setKind(kind){
@@ -1151,20 +1159,23 @@ function genReadingProblem(kind, level, excludeWord){
   return {before:pick[0], word:pick[1], reading:pick[2], after:pick[3], meaning:pick[4]||''};
 }
 
-/* ---- 「クイズ」系の問題(れきし) ----
-   「〜を行ったのは…と誰?」のような四択問題。時代の進み方を目安にレベルを
-   スライドさせている。HISTORY_DATA(にほんし)/ WORLD_HISTORY_DATA(せかいし)は
-   外部ファイル(history-data.js / world-history-data.js)で定義。各エントリは
-   { q, choices:[4つ(0番目が正解)], answer:0, meaning } の形式で、出題時に
-   選択肢をシャッフルして正解の位置をランダムにする。 */
+/* ---- 「クイズ」系の問題(れきし・ITパス) ----
+   「〜を行ったのは…と誰?」のような四択問題。時代の進み方や分野を目安に
+   レベルをスライドさせている。HISTORY_DATA(にほんし)/ WORLD_HISTORY_DATA(せかいし)/
+   ITPASS_DATA(ITパス)は外部ファイル(history-data.js / world-history-data.js /
+   itpass-data.js)で定義。各エントリは { q, choices:[4つ(0番目が正解)], answer:0,
+   meaning } の形式で、出題時に選択肢をシャッフルして正解の位置をランダムにする。 */
 const HISTORY_ERA = ['縄文〜奈良','平安','鎌倉・室町','安土桃山・江戸初期','江戸中期','幕末・明治','明治・大正','昭和戦前','戦後・現代','発展編'];
 function historyEraLabel(lv){ return HISTORY_ERA[lv-1]; }
 const WORLD_HISTORY_ERA = ['古代文明','古代ギリシャ・ローマ','中世ヨーロッパ','ルネサンス・大航海時代','宗教改革・絶対王政','市民革命','産業革命・帝国主義','第一次世界大戦','第二次世界大戦・冷戦','現代・発展編'];
 function worldHistoryEraLabel(lv){ return WORLD_HISTORY_ERA[lv-1]; }
+const ITPASS_CATEGORY = ['基礎知識','ハード・ソフト','ネットワーク','セキュリティ','データベース','システム開発','プロジェクト管理','サービス・戦略','法務・会計','発展・先端技術'];
+function itpassCategoryLabel(lv){ return ITPASS_CATEGORY[lv-1]; }
 
 const QUIZ_SUBJECTS = {
   historyJp:    { data: HISTORY_DATA,       levelLabel: historyEraLabel },
-  historyWorld: { data: WORLD_HISTORY_DATA, levelLabel: worldHistoryEraLabel }
+  historyWorld: { data: WORLD_HISTORY_DATA, levelLabel: worldHistoryEraLabel },
+  itpass:       { data: ITPASS_DATA,        levelLabel: itpassCategoryLabel }
 };
 function isQuizKind(kind){ return !!QUIZ_SUBJECTS[kind]; }
 function shuffledIndices(n){
