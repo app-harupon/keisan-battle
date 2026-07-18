@@ -408,6 +408,7 @@
 
 <script src="kanji-data.js"></script>
 <script src="history-data.js"></script>
+<script src="world-history-data.js"></script>
 <script>
 const MAX_HP = 100;
 const el = id => document.getElementById(id);
@@ -951,13 +952,14 @@ function applyShotDamage(shot){
    ready:false の教科はまだ問題データがないため、選択すると準備中トーストを出すだけの
    プレースホルダー。中身(問題データ)は今後あらためて実装する。 */
 const SUBJECTS = [
-  { id:'calc',    icon:'🔢', label:'けいさん',       ready:true },
-  { id:'kanji',   icon:'🈶', label:'かんじの読み方',  ready:true },
-  { id:'history', icon:'📜', label:'れきし',         ready:true },
-  { id:'chem',    icon:'🧪', label:'かがく',         ready:false },
-  { id:'english', icon:'🔤', label:'えいご',         ready:false },
-  { id:'music',   icon:'🎵', label:'おんがく',       ready:false },
-  { id:'art',     icon:'🎨', label:'びじゅつ',       ready:false }
+  { id:'calc',         icon:'🔢', label:'けいさん',       ready:true },
+  { id:'kanji',        icon:'🈶', label:'かんじの読み方',  ready:true },
+  { id:'historyJp',    icon:'📜', label:'にほんし',       ready:true },
+  { id:'historyWorld', icon:'🌍', label:'せかいし',       ready:true },
+  { id:'chem',         icon:'🧪', label:'かがく',         ready:false },
+  { id:'english',      icon:'🔤', label:'えいご',         ready:false },
+  { id:'music',        icon:'🎵', label:'おんがく',       ready:false },
+  { id:'art',          icon:'🎨', label:'びじゅつ',       ready:false }
 ];
 let currentKind = 'calc';
 function renderSubjectGrid(){
@@ -992,11 +994,17 @@ const SUBJECT_DESCRIPTIONS = {
     stage: '漢字の読み方問題でLv.1から順に敵を倒してステージクリア。クリアすると次のステージが解放される。',
     diagnostic: '全12問のスコアアタックで自分の実力を診断。漢字の読み方の正解が続くとだんだん難しくなり、間違えるとやさしく戻る。今ちょうどいいレベルを知りたいときにも使える。'
   },
-  history: {
-    speed: '歴史の四択クイズが次々ランダムに出てくる。「〜を行ったのは…と誰?」のような問題に正しく答えて攻撃しよう。先にHPを0にした方が勝ち。',
-    survival: '歴史の四択クイズが制限時間内に出題され続ける。不正解・時間切れで1ミス、5ミスでゲームオーバー。',
-    stage: '歴史の四択クイズでLv.1から順に敵を倒してステージクリア。クリアすると次のステージが解放される。',
-    diagnostic: '全12問のスコアアタックで自分の実力を診断。歴史の四択クイズの正解が続くとだんだん難しくなり、間違えるとやさしく戻る。今ちょうどいいレベルを知りたいときにも使える。'
+  historyJp: {
+    speed: '日本史の四択クイズが次々ランダムに出てくる。「〜を行ったのは…と誰?」のような問題に正しく答えて攻撃しよう。先にHPを0にした方が勝ち。',
+    survival: '日本史の四択クイズが制限時間内に出題され続ける。不正解・時間切れで1ミス、5ミスでゲームオーバー。',
+    stage: '日本史の四択クイズでLv.1から順に敵を倒してステージクリア。クリアすると次のステージが解放される。',
+    diagnostic: '全12問のスコアアタックで自分の実力を診断。日本史の四択クイズの正解が続くとだんだん難しくなり、間違えるとやさしく戻る。今ちょうどいいレベルを知りたいときにも使える。'
+  },
+  historyWorld: {
+    speed: '世界史の四択クイズが次々ランダムに出てくる。「〜を行ったのは誰?」のような問題に正しく答えて攻撃しよう。先にHPを0にした方が勝ち。',
+    survival: '世界史の四択クイズが制限時間内に出題され続ける。不正解・時間切れで1ミス、5ミスでゲームオーバー。',
+    stage: '世界史の四択クイズでLv.1から順に敵を倒してステージクリア。クリアすると次のステージが解放される。',
+    diagnostic: '全12問のスコアアタックで自分の実力を診断。世界史の四択クイズの正解が続くとだんだん難しくなり、間違えるとやさしく戻る。今ちょうどいいレベルを知りたいときにも使える。'
   }
 };
 function setKind(kind){
@@ -1145,14 +1153,18 @@ function genReadingProblem(kind, level, excludeWord){
 
 /* ---- 「クイズ」系の問題(れきし) ----
    「〜を行ったのは…と誰?」のような四択問題。時代の進み方を目安にレベルを
-   スライドさせている。HISTORY_DATA は外部ファイル(history-data.js)で定義。
-   各エントリは { q, choices:[4つ(0番目が正解)], answer:0, meaning } の形式で、
-   出題時に選択肢をシャッフルして正解の位置をランダムにする。 */
+   スライドさせている。HISTORY_DATA(にほんし)/ WORLD_HISTORY_DATA(せかいし)は
+   外部ファイル(history-data.js / world-history-data.js)で定義。各エントリは
+   { q, choices:[4つ(0番目が正解)], answer:0, meaning } の形式で、出題時に
+   選択肢をシャッフルして正解の位置をランダムにする。 */
 const HISTORY_ERA = ['縄文〜奈良','平安','鎌倉・室町','安土桃山・江戸初期','江戸中期','幕末・明治','明治・大正','昭和戦前','戦後・現代','発展編'];
 function historyEraLabel(lv){ return HISTORY_ERA[lv-1]; }
+const WORLD_HISTORY_ERA = ['古代文明','古代ギリシャ・ローマ','中世ヨーロッパ','ルネサンス・大航海時代','宗教改革・絶対王政','市民革命','産業革命・帝国主義','第一次世界大戦','第二次世界大戦・冷戦','現代・発展編'];
+function worldHistoryEraLabel(lv){ return WORLD_HISTORY_ERA[lv-1]; }
 
 const QUIZ_SUBJECTS = {
-  history: { data: HISTORY_DATA, levelLabel: historyEraLabel }
+  historyJp:    { data: HISTORY_DATA,       levelLabel: historyEraLabel },
+  historyWorld: { data: WORLD_HISTORY_DATA, levelLabel: worldHistoryEraLabel }
 };
 function isQuizKind(kind){ return !!QUIZ_SUBJECTS[kind]; }
 function shuffledIndices(n){
