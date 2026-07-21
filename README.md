@@ -1,4 +1,4 @@
-# ケイサンバトル
+# まなびバトル
 
 計算・漢字の読み方・日本史・世界史・ITパスポート・英語・化学などを解いて相手を攻撃する、ブラウザで動く対戦ゲーム(試作版)。
 `index.html`(ゲーム本体)+ `kanji-data.js`(漢字語彙データ)+ `history-data.js`(日本史データ)+ `world-history-data.js`(世界史データ)+ `itpass-data.js`(ITパスポートデータ)+ `english-data.js`(英語データ)+ `chemistry-data.js`(化学データ)の7ファイル構成。ビルド不要・依存ライブラリなし。
